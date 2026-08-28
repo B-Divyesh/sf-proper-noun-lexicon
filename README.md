@@ -63,9 +63,11 @@ Requirements: Rust 1.85+, Node 20+, npm 10+.
 npm install
 npm test
 npm run build
+npm run verify:live
 ```
 
 `npm run build` builds and tests the Rust CLI, creates release binaries, and outputs the static site at `dist/site/`. For site-only development use `npm run dev`; for the exact deploy artifact use `npm run build:site`.
+`npm run verify:live` checks the deployed identity, response policy, asset budgets, production catalog entry, hosted-checkout redirect, and invalid-license response without making a purchase.
 
 Create a publishable Rust crate without uploading it:
 

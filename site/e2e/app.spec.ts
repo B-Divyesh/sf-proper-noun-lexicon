@@ -41,6 +41,62 @@ test('production purchase and license verification use only the production billi
   expect(verifyRequests).toEqual(['https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify?license=qa-invalid-token']);
 });
 
+test('a returned production license is stored, stripped from the URL, and unlocks after verification', async ({ page }) => {
+  await page.route('https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify**', route =>
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify({ valid: true, reason: 'ok', expires_at: null }) }),
+  );
+  await page.goto('/?license=qa-valid-token');
+
+  await expect(page).not.toHaveURL(/license=/);
+  await expect(page.locator('#license-status')).toContainText('License verified');
+  await expect(page.locator('body')).toHaveClass(/is-pro/);
+  expect(await page.evaluate(() => localStorage.getItem('sb_license:proper-noun-lexicon'))).toBe('qa-valid-token');
+});
+
+test('restore, daily verification cache, revocation, and offline fallback preserve the license contract', async ({ page }) => {
+  let verdict: 'valid' | 'revoked' = 'valid';
+  let verifyRequests = 0;
+  await page.route('https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify**', route => {
+    verifyRequests += 1;
+    const valid = verdict === 'valid';
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ valid, reason: valid ? 'ok' : 'revoked', expires_at: null }) });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Have a license? Restore it' }).click();
+  await page.getByLabel('License token').fill('qa-restored-token');
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.locator('body')).toHaveClass(/is-pro/);
+  await expect(page.locator('#license-status')).toContainText('License verified');
+  expect(verifyRequests).toBe(1);
+
+  await page.reload();
+  await expect(page.locator('body')).toHaveClass(/is-pro/);
+  expect(verifyRequests).toBe(1);
+
+  await page.evaluate(() => {
+    const key = 'sb_license_verdict:proper-noun-lexicon';
+    const cached = JSON.parse(localStorage.getItem(key)!);
+    cached.checkedAt = 0;
+    localStorage.setItem(key, JSON.stringify(cached));
+  });
+  verdict = 'revoked';
+  await page.reload();
+  await expect(page.locator('body')).not.toHaveClass(/is-pro/);
+  await expect(page.locator('#license-status')).toContainText('License no longer active');
+  expect(verifyRequests).toBe(2);
+
+  await page.evaluate(() => {
+    const token = 'qa-offline-token';
+    localStorage.setItem('sb_license:proper-noun-lexicon', token);
+    localStorage.setItem('sb_license_verdict:proper-noun-lexicon', JSON.stringify({ valid: true, checkedAt: 0, token }));
+  });
+  await page.unroute('https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify**');
+  await page.route('https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify**', route => route.abort());
+  await page.reload();
+  await expect(page.locator('body')).toHaveClass(/is-pro/);
+  await expect(page.locator('#license-status')).toContainText('Offline — using the last verified license');
+});
+
 test('has no serious or critical accessibility violations', async ({ page }) => {
   await page.goto('/');
   const results = await new AxeBuilder({ page }).analyze();

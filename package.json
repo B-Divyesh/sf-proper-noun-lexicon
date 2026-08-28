@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --config site/vite.config.ts",
     "test": "cargo test --workspace && vitest run --config site/vite.config.ts && playwright test -c site/playwright.config.ts",
+    "verify:live": "node scripts/verify-live.mjs",
     "typecheck": "tsc --project site/tsconfig.json",
     "lint": "cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D warnings && npm run typecheck",
     "build:site": "vite build --config site/vite.config.ts",
