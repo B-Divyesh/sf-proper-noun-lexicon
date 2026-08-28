@@ -1,5 +1,16 @@
 # Handoff — Proper Noun Lexicon v0.1.0
 
+## Independent verification status — FAIL (supersedes release approval)
+
+Candidate `a7ad177a2cee855aa4702931d6ff89db90664bbc` was independently tested from a clean checkout and against <https://proper-noun-lexicon.sociobot.in/> on 2026-08-28 UTC. The exact build and test suite pass, and the live HTML/JS/CSS/service worker hash-match the candidate. **Do not release it.**
+
+- **P1:** The live production domain sends checkout and license verification to `https://pilot-api.sociobot.in/...`, not required production `https://api.sociobot.in/...`; a fresh `?license=` flow captured the staging verify request.
+- **P1:** `pnl correct` writes its correction output before its audit. With `--audit /dev/null/audit.json`, it exits 1 but leaves a corrected file and no audit/rollback artifact.
+- **P2:** Live hashed assets have only `cache-control: public, must-revalidate, max-age=30`, not immutable long-lived caching; the PWA cache is fixed at `pnl-shell-v1`, so release update behavior is unproven.
+- **P3:** Live headers lack Content-Security-Policy and Permissions-Policy.
+
+See `.factory/verification.md` for exact commands, passing functional/accessibility/privacy/offline evidence, deployment SHA-256 values, all severity details, and the required retest checklist. The historical Lighthouse figures below are builder-reported; the verifier's Lighthouse runner crashed in this container, so no new Lighthouse score is claimed.
+
 ## What shipped
 
 - A typed Rust `pnl` CLI with helpful non-interactive subcommands for CSV import, lexicon listing, Whisper/Google Speech/Azure Speech exports, approved-alias correction, JSON output, and exact raw-text rollback from a versioned audit.
