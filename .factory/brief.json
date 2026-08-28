@@ -1,0 +1,11 @@
+{
+  "slug": "proper-noun-lexicon",
+  "title": "Proper Noun Lexicon",
+  "territory": "utilities",
+  "user": "People who rely on dictation or transcription for work and need names, acronyms, and company vocabulary rendered correctly without sharing an audio corpus.",
+  "smallest_useful_product": "Local library/CLI plus compact review UI: import a CSV of approved terms and aliases, emit model-specific phrase bias/prompt files, and show a one-click raw-versus-corrected diff.",
+  "success_measure": "On a pilot vocabulary of 100 names, the configured system improves exact-name recall by 25 percentage points while every correction remains reversible.",
+  "artifact_class": "cli",
+  "monetization": "one-time",
+  "constraints": "Never transmit contact lists by default; support only documented model bias interfaces; preserve raw text and correction audit locally."
+}
