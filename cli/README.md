@@ -10,3 +10,6 @@ pnl rollback review.json --output raw-restored.txt
 
 See the repository README for the complete contract and formats.
 
+`pnl export --format google-speech` writes one inline Google Cloud Speech
+`PhraseSet` object. Insert it into
+`RecognitionConfig.adaptation.phraseSets[]` in the recognition request.

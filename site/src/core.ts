@@ -77,7 +77,9 @@ export function correct(raw: string, entries: Entry[]): Audit {
 export function exportPayload(entries: Entry[], format: 'whisper' | 'google' | 'azure'): string {
   const terms = entries.map(entry => entry.term);
   if (format === 'whisper') return `The following proper nouns may appear: ${terms.join(', ')}. Preserve their spelling exactly.\n`;
-  if (format === 'google') return JSON.stringify({ phraseSet: { phrases: terms.map(value => ({ value, boost: 15 })) } }, null, 2) + '\n';
+  // One inline Google Cloud Speech PhraseSet for
+  // RecognitionConfig.adaptation.phraseSets[].
+  if (format === 'google') return JSON.stringify({ phrases: terms.map(value => ({ value, boost: 15 })) }, null, 2) + '\n';
   return JSON.stringify({ phrases: terms }, null, 2) + '\n';
 }
 

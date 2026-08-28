@@ -22,7 +22,14 @@ describe('browser lexicon core', () => {
   it('emits each documented model format', () => {
     const entries = [{ term: 'Sociobot', aliases: [] }];
     expect(exportPayload(entries, 'whisper')).toContain('Sociobot');
-    expect(JSON.parse(exportPayload(entries, 'google')).phraseSet.phrases[0].boost).toBe(15);
     expect(JSON.parse(exportPayload(entries, 'azure')).phrases).toEqual(['Sociobot']);
+  });
+
+  it('emits a Google inline PhraseSet for RecognitionConfig.adaptation.phraseSets', () => {
+    const payload = JSON.parse(exportPayload([{ term: 'Sociobot', aliases: [] }], 'google'));
+    expect(Object.keys(payload)).toEqual(['phrases']);
+    expect(payload.phrases).toEqual([{ value: 'Sociobot', boost: 15 }]);
+    expect(payload).not.toHaveProperty('phraseSet');
+    expect(payload).not.toHaveProperty('phraseSets');
   });
 });

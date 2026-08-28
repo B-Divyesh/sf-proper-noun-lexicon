@@ -20,13 +20,60 @@ test('review flow corrects and restores only approved terms', async ({ page }) =
   expect(runtimeErrors).toEqual([]);
 });
 
-test('keyboard path and export are available', async ({ page }) => {
+test('keyboard path and documented Google export are available', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Load sample vocabulary' }).click();
   await page.getByLabel('Raw transcript').press(process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter');
   await expect(page.getByLabel('Corrected transcript')).toContainText('Sociobot');
-  await page.getByRole('tab', { name: 'Google Speech' }).click();
-  await expect(page.locator('#export-preview')).toContainText('phraseSet');
+
+  const whisper = page.getByRole('tab', { name: 'Whisper' });
+  const google = page.getByRole('tab', { name: 'Google Speech' });
+  await whisper.focus();
+  await whisper.press('ArrowRight');
+  await expect(google).toBeFocused();
+  await expect(google).toHaveAttribute('aria-selected', 'true');
+  await expect(whisper).toHaveAttribute('tabindex', '-1');
+  const payload = JSON.parse(await page.locator('#export-preview').textContent() || '{}');
+  expect(Object.keys(payload)).toEqual(['phrases']);
+  expect(payload.phrases[0]).toEqual({ value: 'Sociobot', boost: 15 });
+  expect(payload).not.toHaveProperty('phraseSet');
+  await expect(page.locator('#export-help')).toContainText('RecognitionConfig.adaptation.phraseSets[]');
+
+  await google.press('End');
+  await expect(page.getByRole('tab', { name: 'Azure Speech' })).toBeFocused();
+  await page.getByRole('tab', { name: 'Azure Speech' }).press('Home');
+  await expect(whisper).toBeFocused();
+});
+
+test('CSV import is sequentially keyboard focusable and operable', async ({ page }, testInfo) => {
+  await page.goto('/');
+  for (let index = 0; index < 20; index += 1) {
+    if (await page.evaluate(() => document.activeElement?.id === 'csv-file')) break;
+    await page.keyboard.press('Tab');
+  }
+  await expect(page.locator('#csv-file')).toBeFocused();
+  await expect(page.locator('label[for="csv-file"]')).toHaveCSS('outline-style', 'solid');
+
+  const chooser = page.waitForEvent('filechooser');
+  await page.keyboard.press(testInfo.project.name === 'mobile-390' ? 'Space' : 'Enter');
+  await (await chooser).setFiles({
+    name: 'keyboard.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('term,aliases\nSociobot,socio bot\n'),
+  });
+  await expect(page.locator('#entry-count')).toHaveText('1 term');
+  await expect(page.getByText('Sociobot', { exact: true })).toBeVisible();
+});
+
+test('every visible landing-page link has a 44 by 44 CSS pixel target', async ({ page }) => {
+  await page.goto('/');
+  const undersized = await page.locator('a:visible').evaluateAll(links => links.flatMap(link => {
+    const box = link.getBoundingClientRect();
+    return box.width + 0.01 < 44 || box.height + 0.01 < 44
+      ? [{ text: link.textContent?.trim(), width: box.width, height: box.height }]
+      : [];
+  }));
+  expect(undersized).toEqual([]);
 });
 
 test('production purchase and license verification use only the production billing API', async ({ page }) => {

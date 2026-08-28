@@ -39,6 +39,11 @@ pnl export --lexicon team.pnl.json --format google-speech --output phrase-set.js
 pnl export --lexicon team.pnl.json --format azure-speech --output phrase-list.json
 ```
 
+The Google Speech file is one documented inline `PhraseSet` object with a
+`phrases` root. Insert that object as an item in
+`RecognitionConfig.adaptation.phraseSets[]`; it is not a complete recognition
+request or a standalone `SpeechAdaptation` wrapper.
+
 Correct a transcript using approved aliases only. The audit contains the untouched raw text and every replacement:
 
 ```sh

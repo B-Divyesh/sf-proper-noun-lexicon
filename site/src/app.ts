@@ -168,12 +168,38 @@ $('#download-audit').addEventListener('click', () => { if (audit) download('revi
 function renderExport(): void {
   $('#export-preview').textContent = entries.length ? exportPayload(entries, format) : 'Add vocabulary to preview a model-ready export.';
   $('#download-model').textContent = format === 'whisper' ? 'Download prompt' : 'Download phrase file';
+  $('#export-help').textContent = {
+    whisper: 'Use this text as a Whisper initial prompt.',
+    google: 'Insert this inline PhraseSet object into RecognitionConfig.adaptation.phraseSets[].',
+    azure: 'Submit this phrase list through the Azure Speech phrase-list interface.',
+  }[format];
 }
 
-document.querySelectorAll<HTMLButtonElement>('[role="tab"]').forEach(tab => tab.addEventListener('click', () => {
-  document.querySelectorAll<HTMLElement>('[role="tab"]').forEach(item => item.setAttribute('aria-selected', String(item === tab)));
-  format = tab.dataset.format as typeof format; renderExport();
-}));
+const exportTabs = [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+function selectExportTab(tab: HTMLButtonElement, moveFocus = false): void {
+  exportTabs.forEach(item => {
+    const selected = item === tab;
+    item.setAttribute('aria-selected', String(selected));
+    item.tabIndex = selected ? 0 : -1;
+  });
+  format = tab.dataset.format as typeof format;
+  $('#export-preview').setAttribute('aria-labelledby', tab.id);
+  renderExport();
+  if (moveFocus) tab.focus();
+}
+exportTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => selectExportTab(tab));
+  tab.addEventListener('keydown', event => {
+    let next: number | undefined;
+    if (event.key === 'ArrowRight') next = (index + 1) % exportTabs.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + exportTabs.length) % exportTabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = exportTabs.length - 1;
+    if (next === undefined) return;
+    event.preventDefault();
+    selectExportTab(exportTabs[next], true);
+  });
+});
 $('#download-model').addEventListener('click', () => {
   if (!entries.length) return announce('Add vocabulary before exporting.');
   const names = { whisper: 'whisper-prompt.txt', google: 'google-phrase-set.json', azure: 'azure-phrase-list.json' };

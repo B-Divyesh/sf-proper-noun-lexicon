@@ -248,8 +248,10 @@ pub fn export(lexicon: &Lexicon, format: ExportFormat) -> Result<String, PnlErro
     let terms: Vec<&str> = lexicon.entries.iter().map(|e| e.term.as_str()).collect();
     match format {
         ExportFormat::Whisper => Ok(format!("The following proper nouns may appear: {}. Preserve their spelling exactly.\n", terms.join(", "))),
+        // One documented inline Google Cloud Speech `PhraseSet` for
+        // RecognitionConfig.adaptation.phraseSets[].
         ExportFormat::GoogleSpeech => serde_json::to_string_pretty(&serde_json::json!({
-            "phraseSet": { "phrases": terms.iter().map(|term| serde_json::json!({"value": term, "boost": 15.0})).collect::<Vec<_>>() }
+            "phrases": terms.iter().map(|term| serde_json::json!({"value": term, "boost": 15.0})).collect::<Vec<_>>()
         })).map(|s| s + "\n").map_err(|e| PnlError(e.to_string())),
         ExportFormat::AzureSpeech => serde_json::to_string_pretty(&serde_json::json!({ "phrases": terms }))
             .map(|s| s + "\n").map_err(|e| PnlError(e.to_string())),
@@ -314,5 +316,18 @@ mod tests {
             let value = export(&sample(), format).unwrap();
             assert!(value.contains("Sociobot"));
         }
+    }
+
+    #[test]
+    fn google_export_is_an_inline_phrase_set_schema() {
+        let payload: serde_json::Value =
+            serde_json::from_str(&export(&sample(), ExportFormat::GoogleSpeech).unwrap()).unwrap();
+        let root = payload.as_object().expect("Google export object");
+
+        assert_eq!(root.keys().collect::<Vec<_>>(), vec!["phrases"]);
+        assert_eq!(payload["phrases"][0]["value"], "Sociobot");
+        assert_eq!(payload["phrases"][0]["boost"], 15.0);
+        assert!(payload.get("phraseSet").is_none());
+        assert!(payload.get("phraseSets").is_none());
     }
 }

@@ -61,8 +61,10 @@
               <div class="pane-heading">
                 <div><p class="pane-kicker">Approved vocabulary</p><h3 id="lexicon-title">My lexicon <span id="entry-count">0 terms</span></h3></div>
                 <div class="inline-actions">
-                  <label class="icon-button" for="csv-file"><span aria-hidden="true">↑</span><span>Import CSV</span></label>
-                  <input id="csv-file" type="file" accept=".csv,text/csv" hidden />
+                  <span class="file-picker">
+                    <input class="file-input" id="csv-file" type="file" accept=".csv,text/csv" aria-label="Import CSV" />
+                    <label class="icon-button" for="csv-file"><span aria-hidden="true">↑</span><span>Import CSV</span></label>
+                  </span>
                   <button class="icon-button" id="export-csv" type="button" aria-label="Export CSV"><span aria-hidden="true">↓</span><span>CSV</span></button>
                 </div>
               </div>
@@ -119,11 +121,12 @@
         <div class="export-grid">
           <div class="export-console glass">
             <div class="tabs" role="tablist" aria-label="Export format">
-              <button role="tab" aria-selected="true" data-format="whisper">Whisper</button>
-              <button role="tab" aria-selected="false" data-format="google">Google Speech</button>
-              <button role="tab" aria-selected="false" data-format="azure">Azure Speech</button>
+              <button id="tab-whisper" role="tab" aria-controls="export-preview" aria-selected="true" tabindex="0" data-format="whisper">Whisper</button>
+              <button id="tab-google" role="tab" aria-controls="export-preview" aria-selected="false" tabindex="-1" data-format="google">Google Speech</button>
+              <button id="tab-azure" role="tab" aria-controls="export-preview" aria-selected="false" tabindex="-1" data-format="azure">Azure Speech</button>
             </div>
-            <pre id="export-preview" tabindex="0">Add vocabulary to preview a model-ready export.</pre>
+            <pre id="export-preview" role="tabpanel" aria-labelledby="tab-whisper" tabindex="0">Add vocabulary to preview a model-ready export.</pre>
+            <p class="export-help" id="export-help">Use this text as a Whisper initial prompt.</p>
             <button class="button primary compact" id="download-model" type="button">Download prompt</button>
           </div>
           <div class="cli-card glass" id="cli">
