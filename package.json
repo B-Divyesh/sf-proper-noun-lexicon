@@ -1,0 +1,20 @@
+{
+  "name": "proper-noun-lexicon-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config site/vite.config.ts",
+    "test": "cargo test --workspace && vitest run --config site/vite.config.ts && playwright test -c site/playwright.config.ts",
+    "build:site": "vite build --config site/vite.config.ts",
+    "build:cli": "cargo build --release --workspace",
+    "build": "npm test && npm run build:cli && npm run build:site"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
+    "@playwright/test": "1.58.2",
+    "typescript": "5.9.2",
+    "vite": "7.3.6",
+    "vitest": "3.2.7"
+  }
+}

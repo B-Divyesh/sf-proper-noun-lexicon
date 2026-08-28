@@ -1,6 +1,7 @@
+target/
 node_modules/
 dist/
-.env
-*.log
+.lighthouseci/
+test-results/
 graphify-out/
-.DS_Store
+*.log
