@@ -1,11 +1,39 @@
 import { defineConfig } from 'vite';
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+const root = resolve(__dirname);
+const output = resolve(__dirname, '../dist/site');
+
+function releaseId(): string {
+  const supplied = process.env.PNL_RELEASE_ID;
+  if (supplied && /^[a-zA-Z0-9._-]+$/.test(supplied)) return supplied;
+  try {
+    return execFileSync('git', ['rev-parse', '--verify', 'HEAD'], { cwd: resolve(__dirname, '..'), encoding: 'utf8' }).trim();
+  } catch {
+    return 'local-development';
+  }
+}
+
+function releaseVersionedServiceWorker() {
+  return {
+    name: 'release-versioned-service-worker',
+    closeBundle() {
+      const template = resolve(root, 'public/sw.js');
+      const destination = resolve(output, 'sw.js');
+      if (!existsSync(destination)) return;
+      const source = readFileSync(template, 'utf8');
+      writeFileSync(destination, source.replaceAll('__PNL_RELEASE__', releaseId()));
+    },
+  };
+}
+
 export default defineConfig({
-  root: resolve(__dirname),
-  publicDir: resolve(__dirname, 'public'),
+  root,
+  publicDir: resolve(root, 'public'),
   build: {
-    outDir: resolve(__dirname, '../dist/site'),
+    outDir: output,
     emptyOutDir: true,
     target: 'es2022',
     sourcemap: true,
@@ -17,8 +45,8 @@ export default defineConfig({
       },
     },
   },
+  plugins: [releaseVersionedServiceWorker()],
   test: {
     include: [resolve(__dirname, 'src/**/*.test.ts')],
   },
 });
-

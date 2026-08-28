@@ -1,4 +1,7 @@
-const CACHE = 'pnl-shell-v1';
+// Vite stamps this token with the immutable Git release identifier when it
+// builds the deploy artifact. A changed worker URL body forces the browser to
+// install the new shell instead of serving an older cache indefinitely.
+const CACHE = 'pnl-shell-__PNL_RELEASE__';
 const SHELL = ['/', '/privacy/', '/terms/', '/lexical-landscape.webp', '/icon.svg', '/manifest.webmanifest'];
 self.addEventListener('install', event => event.waitUntil((async () => {
   const cache = await caches.open(CACHE);

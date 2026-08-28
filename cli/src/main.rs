@@ -2,7 +2,9 @@ use clap::{Parser, Subcommand};
 use proper_noun_lexicon::{Audit, ExportFormat, Lexicon, export, import_csv};
 use serde_json::json;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Parser)]
 #[command(
@@ -81,6 +83,98 @@ fn write(path: &Path, value: &str) -> Result<(), String> {
     fs::write(path, value).map_err(|e| format!("could not write {}: {e}", path.display()))
 }
 
+fn prepare_destination(path: &Path) -> Result<(), String> {
+    if path.is_dir() {
+        return Err(format!("{} is a directory", path.display()));
+    }
+    if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("could not create {}: {e}", parent.display()))?;
+    }
+    Ok(())
+}
+
+fn write_temporary(path: &Path, value: &str) -> Result<PathBuf, String> {
+    let parent = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("pnl-output");
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    for attempt in 0..32 {
+        let temporary = parent.join(format!(
+            ".{name}.pnl-{}-{nonce}-{attempt}.tmp",
+            std::process::id()
+        ));
+        match fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+        {
+            Ok(mut file) => {
+                if let Err(error) = file
+                    .write_all(value.as_bytes())
+                    .and_then(|_| file.sync_all())
+                {
+                    let _ = fs::remove_file(&temporary);
+                    return Err(format!("could not write {}: {error}", path.display()));
+                }
+                return Ok(temporary);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(format!("could not write {}: {error}", path.display())),
+        }
+    }
+    Err(format!(
+        "could not create a temporary file for {}",
+        path.display()
+    ))
+}
+
+/// Write a correction only after its rollback audit is safely on disk.
+///
+/// Both contents are fully written to private sibling temporary files before
+/// either visible destination changes. The audit is committed first, so a
+/// correction can never be emitted when its required rollback record could
+/// not be created.
+fn write_correction_pair(
+    output: &Path,
+    corrected: &str,
+    audit: &Path,
+    audit_json: &str,
+) -> Result<(), String> {
+    if output == audit {
+        return Err("correction output and audit must be different files".into());
+    }
+    // Validate both destinations before touching either visible artifact.
+    prepare_destination(output)?;
+    prepare_destination(audit)?;
+    let output_temp = write_temporary(output, corrected)?;
+    let audit_temp = match write_temporary(audit, audit_json) {
+        Ok(path) => path,
+        Err(error) => {
+            let _ = fs::remove_file(output_temp);
+            return Err(error);
+        }
+    };
+    if let Err(error) = fs::rename(&audit_temp, audit) {
+        let _ = fs::remove_file(&output_temp);
+        let _ = fs::remove_file(&audit_temp);
+        return Err(format!("could not write {}: {error}", audit.display()));
+    }
+    if let Err(error) = fs::rename(&output_temp, output) {
+        let _ = fs::remove_file(&output_temp);
+        return Err(format!("could not write {}: {error}", output.display()));
+    }
+    Ok(())
+}
+
 fn run(cli: Cli) -> Result<serde_json::Value, String> {
     match cli.command {
         Command::Import {
@@ -136,11 +230,9 @@ fn run(cli: Cli) -> Result<serde_json::Value, String> {
             let raw = fs::read_to_string(&input)
                 .map_err(|e| format!("could not read {}: {e}", input.display()))?;
             let result = proper_noun_lexicon::correct(&raw, &value).map_err(|e| e.to_string())?;
-            write(&output, &result.corrected)?;
-            write(
-                &audit,
-                &(serde_json::to_string_pretty(&result).map_err(|e| e.to_string())? + "\n"),
-            )?;
+            let audit_json =
+                serde_json::to_string_pretty(&result).map_err(|e| e.to_string())? + "\n";
+            write_correction_pair(&output, &result.corrected, &audit, &audit_json)?;
             Ok(
                 json!({"ok": true, "command": "correct", "changes": result.changes.len(), "output": output, "audit": audit}),
             )
@@ -233,5 +325,46 @@ mod tests {
             fs::read_to_string(restored).unwrap(),
             fs::read_to_string(raw).unwrap()
         );
+    }
+
+    #[test]
+    fn correction_is_not_emitted_when_its_audit_destination_is_unwritable() {
+        let dir = tempdir().unwrap();
+        let csv = dir.path().join("names.csv");
+        let lexicon = dir.path().join("names.json");
+        let raw = dir.path().join("raw.txt");
+        let corrected = dir.path().join("corrected.txt");
+        let blocked_parent = dir.path().join("not-a-directory");
+        let audit = blocked_parent.join("audit.json");
+        fs::write(&csv, "term,aliases\nSociobot,socio bot\n").unwrap();
+        fs::write(&raw, "Hello socio bot.").unwrap();
+        fs::write(&blocked_parent, "file, not a directory").unwrap();
+        run(Cli {
+            json: true,
+            command: Command::Import {
+                input: csv,
+                output: lexicon.clone(),
+                name: None,
+            },
+        })
+        .unwrap();
+
+        let error = run(Cli {
+            json: true,
+            command: Command::Correct {
+                lexicon,
+                input: raw,
+                output: corrected.clone(),
+                audit: audit.clone(),
+            },
+        })
+        .unwrap_err();
+
+        assert!(error.contains("could not create"));
+        assert!(
+            !corrected.exists(),
+            "a correction without a rollback audit must not be emitted"
+        );
+        assert!(!audit.exists());
     }
 }

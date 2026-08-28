@@ -29,6 +29,18 @@ test('keyboard path and export are available', async ({ page }) => {
   await expect(page.locator('#export-preview')).toContainText('phraseSet');
 });
 
+test('production purchase and license verification use only the production billing API', async ({ page }) => {
+  const verifyRequests: string[] = [];
+  await page.route('https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify**', async route => {
+    verifyRequests.push(route.request().url());
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ valid: false, reason: 'invalid' }) });
+  });
+  await page.goto('/?license=qa-invalid-token');
+  await expect(page).not.toHaveURL(/license=/);
+  await expect(page.locator('#buy-link')).toHaveAttribute('href', 'https://api.sociobot.in/api/v1/products/proper-noun-lexicon/checkout');
+  expect(verifyRequests).toEqual(['https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify?license=qa-invalid-token']);
+});
+
 test('has no serious or critical accessibility violations', async ({ page }) => {
   await page.goto('/');
   const results = await new AxeBuilder({ page }).analyze();

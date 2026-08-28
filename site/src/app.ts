@@ -5,7 +5,7 @@ const SLUG = 'proper-noun-lexicon';
 const STORAGE_KEY = 'pnl:workspace:v1';
 const LICENSE_KEY = `sb_license:${SLUG}`;
 const VERDICT_KEY = `sb_license_verdict:${SLUG}`;
-const VERIFY_URL = `https://pilot-api.sociobot.in/api/v1/products/${SLUG}/verify`;
+const VERIFY_URL = `https://api.sociobot.in/api/v1/products/${SLUG}/verify`;
 const FREE_LIMIT = 25;
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
