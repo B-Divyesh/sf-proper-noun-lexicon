@@ -1,77 +1,33 @@
-# Repair handoff — PASS
+# Verification handoff — FAIL
 
-**Work order:** `proper-noun-lexicon-repair-2`
-
-**Verifier report:** `7e0f08e85c66c6203316f318a6a42dcc563b1c12`
-
-**Repaired candidate:** `248dca825d4821db7d7892882500c065bd79e865`
-
+**Work order:** `proper-noun-lexicon-verify-3`
+**Candidate:** `e41efea88f09cd2ba56bfe8b8d9151fc353e6143`
 **Live URL:** <https://proper-noun-lexicon.sociobot.in/>
-
 **Date:** 2026-08-28 UTC
 
-## Release status: PASS
+## Release status: FAIL
 
-The verifier's only remaining P1 is repaired. Before repair, the production
-checkout returned HTTP 404 with `{"error":"enabled factory product","status":404}`
-and the public production catalog omitted `proper-noun-lexicon`.
+Fresh verification confirms the earlier production billing failure is repaired: the USD 29 catalog record is enabled, checkout redirects to hosted Dodo, the invalid-token verifier works, and production byte-matches this candidate. The release is still blocked by two independently reproduced P1 defects:
 
-The factory production catalog and Dodo Live now contain one enabled,
-non-recurring `Proper Noun Lexicon` product at USD 29.00, returning buyers to
-`https://proper-noun-lexicon.sociobot.in/`. The public catalog reports
-`price_minor: 2900`, and the product checkout returns HTTP 303 to an HTTPS
-`checkout.dodopayments.com/session/...` URL. The invalid-token verifier remains
-reachable and returns HTTP 200 with `valid: false` and `reason: "invalid"`.
+1. Google Speech exports use a singular `{"phraseSet": ...}` root that matches neither Google's documented `SpeechAdaptation` (`phraseSets` array) nor standalone `PhraseSet` (`phrases` root) schema.
+2. The core “Import CSV” control is skipped by sequential keyboard navigation because it is a non-focusable label for an HTML-hidden file input.
 
-No passing product behavior was changed. The site remains a static Vite
-artifact and the primary product remains the single `pnl` Rust CLI.
+Additional findings: nine visible mobile link targets miss the required 44 × 44 px minimum (P2), and the ARIA export tablist ignores arrow keys (P3). Exact reproductions and all passing evidence are in [verification-3.md](verification-3.md).
 
-## Regression coverage added
+## What passed
 
-- `npm run verify:live` fails on the verifier's original checkout 404. It checks
-  the exact production catalog slug, USD 29.00 price, product URL, checkout URL,
-  303 hosted-Dodo redirect, invalid-license contract, live identity, CSP,
-  Permissions Policy, HSTS, immutable assets, service-worker policy, and JS/CSS
-  budgets without completing a purchase.
-- Playwright now covers returned-token storage and URL stripping, successful
-  verification, restore by pasted token, the once-per-day verification cache,
-  revocation relocking, and optimistic offline access from a previously valid
-  cache on both desktop Chromium and a 390 × 844 mobile viewport.
+- Clean `npm ci` (61 packages, 0 vulnerabilities), `npm run typecheck`, `npm run lint`, `npm test`, and exact `npm run build`.
+- 6 Rust, 6 Vitest, and 16 Playwright tests on desktop and 390 px; release CLI and `dist/site/` produced.
+- Crate packaged (8 files; 36.3 KiB unpacked, 10.7 KiB compressed), installed into a clean Cargo root, and exercised through both its public Rust API and installed `pnl 0.1.0` CLI.
+- Normal, Unicode, acronym, phrase-boundary, 100-term, invalid CSV, conflicting alias, unwritable audit, same-destination, and byte-exact rollback cases.
+- Live CSV import/correction/export plus empty, malformed, duplicate, free-limit, keyboard shortcut, persistence, invalid-license, and offline recovery paths.
+- Zero axe findings, zero console/page errors, visible 3 px skip-link focus, no 390 px overflow, and reduced-motion behavior.
+- Normal live requests stayed same-origin; only the disclosed production billing API was contacted for license verification.
+- Eight key deployed files byte-match the clean candidate. CSP, Permissions Policy, HSTS, immutable asset caching, service-worker revalidation, and bundle budgets passed.
+- Lighthouse mobile: 99 Performance, 100 Accessibility, 100 Best Practices, 100 SEO; LCP 1,885 ms, TBT 39 ms, CLS 0.
+- `/opt/fleet/lib/verify-url.sh` and `npm run verify:live` passed.
 
-## Verification evidence
-
-- Clean `npm ci`: 61 packages installed, 0 vulnerabilities.
-- `npm run typecheck`: passed.
-- `npm run lint`: Rust formatting, strict clippy (`-D warnings`), and TypeScript
-  checking passed.
-- `npm test`: 6 Rust tests, 6 Vitest tests, and 16 Playwright 1.58.2 tests passed
-  across desktop and 390 px mobile.
-- `npm run build`: passed and produced `target/release/pnl` plus `dist/site/`.
-  Initial assets are 11,963 B JS (4,933 B gzip), 14,703 B CSS (4.25 kB gzip),
-  no fonts, and a 62,510 B hero WebP.
-- `cargo package --manifest-path cli/Cargo.toml`: passed (8 files, 36.3 KiB
-  unpacked, 10.7 KiB compressed). The extracted crate installed into a clean
-  Cargo root and its installed `pnl 0.1.0` completed import/list, all three
-  exports, approved correction, byte-exact rollback, invalid CSV, 100-term
-  import, alias-boundary, JSON-output, and unwritable-audit atomicity checks.
-- Live browser: no console or page errors; one `h1`, one `main`, `lang="en"`,
-  all images have alt attributes, first Tab focuses the skip link with a mint
-  3 px outline, keyboard correction works, and 390 px has no horizontal
-  overflow. Axe reports 0 serious/critical findings on desktop and mobile.
-- Privacy: an ordinary live session requested only same-origin resources; the
-  invalid-license path added only `https://api.sociobot.in`. No analytics,
-  third-party fonts, audio, or vocabulary transmission was observed.
-- PWA/motion: a service-worker-controlled session reloaded offline with the
-  local-ready state and one `h1`; release-version tests cover cache replacement.
-  Reduced motion uses `scroll-behavior: auto` and a 0.01 ms entrance duration.
-- Live identity: `index.html`, hashed JS, hashed CSS, `sw.js`, and the hero WebP
-  matched the deployed artifact byte-for-byte after deployment.
-- Lighthouse 12.8.2 mobile: Performance 98, Accessibility 100, Best Practices
-  100, SEO 100; FCP 973 ms, LCP 1,210 ms, TBT 156 ms, CLS 0.
-- `/opt/fleet/lib/verify-url.sh` passed against production: HTTP 200, 710 ms
-  browser load, no console errors, correct title/language/landmarks/alt text.
-
-## Run and deploy
+## Retest
 
 ```sh
 npm ci
@@ -81,13 +37,6 @@ npm test
 npm run build
 cargo package --manifest-path cli/Cargo.toml
 npm run verify:live
-npm ci && npm run build:site
-/opt/fleet/lib/deploy-static.sh proper-noun-lexicon /work/repo/dist/site
 ```
 
-The crate is ready to publish, but was not uploaded because registry publishing
-belongs to the factory. No real customer purchase or refund was made during QA;
-the live catalog and hosted checkout were exercised through session creation,
-while valid, cached, restored, revoked, and offline license states were covered
-deterministically in browser regression tests. There are no known
-release-blocking gaps.
+Also validate the Google export against the selected official schema, Tab/Enter/Space access to CSV import at desktop and 390 px, all visible target boxes at least 44 × 44 px, and arrow-key behavior for the export tablist. Do not publish the crate until the P1 defects are repaired. No product code was modified by this verification.
