@@ -1,46 +1,44 @@
-# Handoff — Proper Noun Lexicon v0.1.0
+# Repair handoff — Proper Noun Lexicon v0.1.0
 
-## Independent verification status — FAIL (supersedes release approval)
+## Deployment and release status
 
-Candidate `a7ad177a2cee855aa4702931d6ff89db90664bbc` was independently tested from a clean checkout and against <https://proper-noun-lexicon.sociobot.in/> on 2026-08-28 UTC. The exact build and test suite pass, and the live HTML/JS/CSS/service worker hash-match the candidate. **Do not release it.**
+Repair commit `a8732159c6de76d89cabdc308970ff1fc3841f72` was built and deployed to <https://proper-noun-lexicon.sociobot.in/> on 2026-08-28 UTC using `/opt/fleet/lib/deploy-static.sh proper-noun-lexicon dist/site` (Azure Static Web Apps deployment `b431cb1d-44bd-41e6-bc53-83e573bc3bd7`). The deployed worker contains `pnl-shell-a8732159c6de76d89cabdc308970ff1fc3841f72`.
 
-- **P1:** The live production domain sends checkout and license verification to `https://pilot-api.sociobot.in/...`, not required production `https://api.sociobot.in/...`; a fresh `?license=` flow captured the staging verify request.
-- **P1:** `pnl correct` writes its correction output before its audit. With `--audit /dev/null/audit.json`, it exits 1 but leaves a corrected file and no audit/rollback artifact.
-- **P2:** Live hashed assets have only `cache-control: public, must-revalidate, max-age=30`, not immutable long-lived caching; the PWA cache is fixed at `pnl-shell-v1`, so release update behavior is unproven.
-- **P3:** Live headers lack Content-Security-Policy and Permissions-Policy.
+The four code/configuration findings from `.factory/verification.md` are repaired:
 
-See `.factory/verification.md` for exact commands, passing functional/accessibility/privacy/offline evidence, deployment SHA-256 values, all severity details, and the required retest checklist. The historical Lighthouse figures below are builder-reported; the verifier's Lighthouse runner crashed in this container, so no new Lighthouse score is claimed.
+- Checkout and verification now use only `https://api.sociobot.in/api/v1/products/proper-noun-lexicon/...`; live desktop and 390 × 844 browser sessions with `?license=qa-invalid-token` captured exactly the production verify URL, stripped the token from the address bar, and logged no console errors.
+- `pnl correct` stages both files privately, commits the audit first, then exposes corrected output. If the audit destination is invalid, no corrected file is emitted. A Rust regression test and the release-binary reproduction both cover this case.
+- `staticwebapp.config.json` sends `/assets/*` and the WebP with `public, max-age=31536000, immutable`, while HTML and `/sw.js` use `no-cache, max-age=0, must-revalidate`. Vite stamps the service worker cache with the Git release SHA; regression coverage builds two release IDs and confirms distinct caches plus old-cache cleanup.
+- The deployed response now has the restrictive CSP and Permissions Policy documented below, together with HSTS, `nosniff`, and strict referrer policy.
 
-## What shipped
+### External release gate that remains
 
-- A typed Rust `pnl` CLI with helpful non-interactive subcommands for CSV import, lexicon listing, Whisper/Google Speech/Azure Speech exports, approved-alias correction, JSON output, and exact raw-text rollback from a versioned audit.
-- A compact offline-first browser review desk with CSV import/export, entry validation, conflict errors, 25-term free workspace, reversible highlighted corrections, downloadable audits, model payloads, keyboard shortcuts, clipboard fallback, local persistence, and explicit empty/offline/error states.
-- A $29 one-time permanent unlock using the Sociobot paid-unlock contract: hosted buy link, return-token capture, local token storage, daily cached verification, optimistic offline access after a valid cached verdict, revocation handling, and pasted-token purchase restore. Accessibility, export, audit, and rollback are never gated.
-- Original luminous glass product artwork, a responsive 390 px layout, self-hosted/system typography, reduced-motion treatment, PWA shell caching, privacy and terms pages, robots/sitemap, documentation, MIT license, and changelog.
+The production catalog entry has **not** been registered by the billing factory: `GET https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify?license=qa-invalid-token` returns `200 {"valid":false,"reason":"invalid"}`, but the production checkout URL returns `404 {"error":"enabled factory product"}`. This cannot be repaired from this repository: the supplied factory registration command (`fleet/new-paid-product.sh`) and an admin billing credential are absent. Therefore no issued production license or successful hosted checkout could honestly be tested, and the paid purchase flow remains a release gate until the factory registers the product at $29. The free, local-first CLI and review desk remain fully usable.
 
-## Run and verify
+## Verification evidence
+
+From a clean Node install (`npm ci`):
+
+- `npm run typecheck` passed.
+- `npm test` passed: 6 Rust unit tests plus doc tests, 6 Vitest tests, and 12 Playwright 1.58.2 tests (desktop Chromium and 390 × 844 mobile). Coverage includes approved-only corrections, raw rollback, the unwritable-audit regression, production billing URL capture, keyboard shortcuts, offline local correction, legal pages, and axe with 0 serious/critical findings.
+- `npm run lint` passed: `cargo fmt --check`, strict `cargo clippy -- -D warnings`, and TypeScript checking.
+- `npm run build` passed and produced `target/release/pnl` plus `dist/site/`.
+- `cargo package --manifest-path cli/Cargo.toml --allow-dirty` passed (8 files; 36.3 KiB unpacked, 10.7 KiB compressed). The extracted crate installed into a clean temporary consumer; installed `pnl --help` exposed the documented single binary. No package was published.
+- The release binary was reproed with a file used as the audit parent: it exited 1 with `could not create … File exists`; neither corrected output nor audit appeared.
+- Artifact budgets: JS 11,963 B (4,930 B gzip), CSS 14,703 B (4,250 B gzip), hero WebP 62,510 B, and no font payload.
+- Live checks: desktop and 390 px each had one `h1` and one `main`, no horizontal overflow, no console errors, 0 serious/critical axe findings, successful service-worker offline reload with “Offline — local tools ready”, and the sole billing request was the production verification URL.
+- Live headers: `Cache-Control: public, max-age=31536000, immutable` on hashed JS; `no-cache, max-age=0, must-revalidate` on `sw.js`; CSP `default-src 'self' … connect-src 'self' https://api.sociobot.in`; Permissions Policy disables accelerometer, autoplay, camera, geolocation, gyroscope, microphone, payment, and USB.
+- Lighthouse 12.8.2 against the deployed mobile URL passed with Performance **100** and Accessibility **100** using the preinstalled Chromium and `--disable-dev-shm-usage`.
+
+## Run, package, and deploy
 
 ```sh
-npm install
+npm ci
+npm run lint
 npm test
 npm run build
+cargo package --manifest-path cli/Cargo.toml
+/opt/fleet/lib/deploy-static.sh proper-noun-lexicon dist/site
 ```
 
-The exact build command is `npm run build`. It runs all Rust, browser-core, desktop/mobile E2E, axe, offline, and console-error checks; builds the release CLI at `target/release/pnl`; and writes the deployable static site with `index.html` at `dist/site/`.
-
-Latest local verification on 2026-08-28:
-
-- Rust: 5 tests passed; doc tests passed.
-- Vitest: 4 tests passed.
-- Playwright 1.58.2: 10 tests passed across desktop Chromium and a 390 × 844 mobile viewport, including keyboard operation, raw rollback, offline operation, legal pages, and no serious/critical axe violations.
-- `npm audit`: 0 vulnerabilities.
-- `cargo package --manifest-path cli/Cargo.toml`: ready-to-publish crate produced successfully; the factory owns publishing credentials and no package was uploaded.
-- Production service worker: page reloaded successfully after the browser context was taken offline.
-- Static budgets: initial application JS 11.97 KB, CSS 14.70 KB, hero WebP 64 KB; no webfont payload.
-- Lighthouse mobile: Performance 100, Accessibility 100, Best Practices 100, SEO 100; FCP 0.9 s, LCP 1.5 s, TBT 60 ms, CLS 0.
-
-## Known gaps and release next steps
-
-- The billing URLs intentionally use `https://pilot-api.sociobot.in` for staging. The factory must register the test product, exercise checkout with the staging card, then switch the base URL to `https://api.sociobot.in` at release. No product ID or payment provider is embedded.
-- Speech interfaces change over time. The v1 exports intentionally cover only the documented prompt/phrase shapes named in the UI; adding another engine should be an explicit versioned formatter, never a guessed integration.
-- The success target (25-point exact-name recall improvement on 100 pilot names) requires a representative external audio/transcript benchmark. The product supplies the 100-term-capable paid workflow and reversible audit needed to run it, but does not fabricate a measured outcome.
+The factory owns registry and billing credentials: do not publish the crate from this repository. Before calling the paid release complete, register the production Sociobot product, then retest hosted checkout, return-token capture, valid/invalid/revoked license states, and cached offline unlock with an issued production token.
