@@ -9,7 +9,7 @@ pnl correct --lexicon names.pnl.json --input raw.txt --output reviewed.txt --aud
 pnl rollback review.json --output raw-restored.txt
 ```
 
-`pnl demo` embeds the sample files in `examples/`, runs the full workflow in a new temporary directory, and prints that path. It creates a portable lexicon, corrected text, rollback audit, and all three model exports.
+`pnl demo` embeds the sample files in `examples/`, runs the full workflow in a new temporary directory, and prints that path. It creates a portable vocabulary file, corrected text, rollback audit, and all three model exports.
 
 See the repository README for the complete contract and formats.
 

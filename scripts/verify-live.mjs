@@ -53,7 +53,14 @@ assert.match(demoHtml, /sample data, nothing is saved/i, 'demo route must includ
 
 const missingResponse = await request(new URL('/definitely-not-a-page', siteUrl));
 assert.equal(missingResponse.status, 404, 'unknown routes must return HTTP 404');
-assert.match(await missingResponse.text(), /This page does not exist/i, '404 response must use the designed recovery page');
+const missingHtml = await missingResponse.text();
+assert.match(missingHtml, /This page does not exist/i, '404 response must use the designed recovery page');
+for (const metadata of ['og:type', 'og:title', 'og:description', 'og:url', 'og:image']) {
+  assert.match(missingHtml, new RegExp(`property=["']${metadata}["']`, 'i'), `404 response must include ${metadata}`);
+}
+for (const metadata of ['twitter:card', 'twitter:title', 'twitter:description', 'twitter:image']) {
+  assert.match(missingHtml, new RegExp(`name=["']${metadata}["']`, 'i'), `404 response must include ${metadata}`);
+}
 
 const catalogResponse = await request('https://api.sociobot.in/api/v1/products');
 assert.equal(catalogResponse.status, 200, 'production product catalog must load');

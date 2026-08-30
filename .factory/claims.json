@@ -4,7 +4,7 @@
     "claim": "The web demo loads sample vocabulary and a transcript without reading or changing the real workspace.",
     "where": "Landing primary action, demo banner, README",
     "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:demo-sandbox",
-    "sandbox": "Fresh browser context with a seeded real workspace; enter /demo, edit/reset, leave demo, and compare real and demo storage."
+    "sandbox": "Fresh browser context with a seeded real workspace; use the one-click ?demo=1 action, edit/reset, leave demo, and compare real and demo storage."
   },
   {
     "id": "local-privacy",

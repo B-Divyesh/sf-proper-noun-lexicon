@@ -75,7 +75,7 @@ function load(): void {
       $('#saved-data-recovery').hidden = false;
       termError.textContent = 'Saved vocabulary was invalid and was set aside. Your transcript was kept when possible.';
     } catch {
-      termError.textContent = 'Saved browser data could not be read. Start a new lexicon or import your CSV again.';
+      termError.textContent = 'Saved browser data could not be read. Start a new vocabulary or import your CSV again.';
     }
   }
 }
@@ -363,19 +363,55 @@ function initDemo(): void {
   }
 }
 
+function routeDestination(): HTMLElement {
+  return DEMO_MODE ? $('#workspace-title') : $('#hero-title');
+}
+
+function focusRouteDestination(): void {
+  const destination = routeDestination();
+  destination.tabIndex = -1;
+  destination.focus({ preventScroll: true });
+  $('#route-status').textContent = DEMO_MODE
+    ? 'Demo loaded. Sample vocabulary and transcript are ready in the review desk.'
+    : 'Home loaded. Proper Noun Lexicon review desk.';
+}
+
+function setNextRouteFocus(route: 'demo' | 'home'): void {
+  try { sessionStorage.setItem('pnl:route-focus', route); } catch { /* navigation still works */ }
+}
+
+document.querySelectorAll<HTMLAnchorElement>('a[href="/demo"], a[href="/?demo=1"]').forEach(link => {
+  link.addEventListener('click', () => setNextRouteFocus('demo'));
+});
+
 $('#reset-demo').addEventListener('click', () => {
   removeDemoStorage();
   seedDemo();
   renderEntries();
   announce('Demo reset to the original sample.');
 });
-$('#start-real').addEventListener('click', () => removeDemoStorage());
+$('#start-real').addEventListener('click', () => { removeDemoStorage(); setNextRouteFocus('home'); });
 
 initDemo(); load(); renderEntries(); connectionState();
 if (!DEMO_MODE) initLicense();
-if (DEMO_MODE) requestAnimationFrame(() => {
-  document.documentElement.classList.add('instant-scroll');
-  window.scrollTo(0, $('#workspace').offsetTop + 96);
-  document.documentElement.classList.remove('instant-scroll');
+let routeFocusRequested = false;
+try {
+  const expected = DEMO_MODE ? 'demo' : 'home';
+  routeFocusRequested = sessionStorage.getItem('pnl:route-focus') === expected;
+  if (routeFocusRequested) sessionStorage.removeItem('pnl:route-focus');
+} catch { /* do not block the local tool when session storage is unavailable */ }
+const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+routeFocusRequested ||= navigation?.type === 'back_forward';
+requestAnimationFrame(() => {
+  if (DEMO_MODE) {
+    document.documentElement.classList.add('instant-scroll');
+    const bannerHeight = $('#demo-banner').getBoundingClientRect().height;
+    window.scrollTo(0, Math.max(0, $('#workspace').offsetTop - bannerHeight - 24));
+    document.documentElement.classList.remove('instant-scroll');
+  }
+  if (routeFocusRequested) focusRouteDestination();
+});
+addEventListener('pageshow', event => {
+  if (event.persisted) requestAnimationFrame(focusRouteDestination);
 });
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => { /* online app remains available */ }));

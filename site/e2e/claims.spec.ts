@@ -14,6 +14,7 @@ test('@claim:demo-sandbox keeps sample work separate from the real workspace', a
   await expect(page.getByRole('link', { name: /Try it with sample data/ })).toBeVisible();
   await page.getByRole('link', { name: /Try it with sample data/ }).click();
 
+  await expect(page).toHaveURL(/\?demo=1$/);
   await expect(page).toHaveTitle('Demo — Proper Noun Lexicon');
   await expect(page.getByLabel('Demo controls')).toContainText('Demo — sample data, nothing is saved');
   await expect(page.locator('#entry-count')).toHaveText('3 terms');

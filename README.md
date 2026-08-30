@@ -2,7 +2,7 @@
 
 Proper Noun Lexicon is a local vocabulary layer for people who use dictation. It imports approved names and aliases, exports documented phrase hints, and changes only whole aliases. Every correction includes the untouched raw text for rollback.
 
-Try the isolated sample: <https://proper-noun-lexicon.sociobot.in/demo>
+Try the isolated sample: <https://proper-noun-lexicon.sociobot.in/?demo=1>
 
 The demo sends no vocabulary or transcript away from the product origin. Its `demo:pnl:` storage never reads or changes the real workspace.
 
@@ -35,7 +35,7 @@ Kubernetes,cuber netties|kube er net ease
 API,A P I
 ```
 
-Import and inspect a portable lexicon:
+Import and inspect a portable vocabulary file:
 
 ```sh
 pnl import names.csv --output team.pnl.json
@@ -85,7 +85,7 @@ fn main() -> Result<(), proper_noun_lexicon::PnlError> {
 ## CSV and JSON contracts
 
 - CSV header: `term,aliases`; aliases are `|`-separated. Quoted fields and escaped quotes are supported.
-- Lexicon JSON: versioned object with `version`, `name`, and `entries`; each entry has a canonical `term` and unique `aliases`.
+- Vocabulary JSON: versioned object with `version`, `name`, and `entries`; each entry has a canonical `term` and unique `aliases`.
 - Corrections are case-insensitive, match phrase boundaries, and prefer the longest alias. Terms are never guessed.
 - Audit JSON: versioned object with `raw`, `corrected`, `created_at`, and ordered `changes` containing UTF-8 byte offsets, original text, replacement, and canonical term. The CLI and browser emit the same offsets.
 
@@ -101,7 +101,7 @@ npm run verify:live
 ```
 
 `npm run build` tests the CLI and site, builds the release binary, and writes the static site to `dist/site/`. Use `npm run dev` for local site work.
-`npm run verify:live` checks the deployed identity, response policy, asset budgets, production catalog entry, hosted-checkout redirect, and invalid-license response without making a purchase.
+`npm run verify:live` checks the deployed site, its headers, file sizes, product listing, checkout redirect, and invalid-license response. It does not make a purchase.
 
 Create a publishable Rust crate without uploading it:
 

@@ -21,6 +21,20 @@ async function checkViewport(name, viewport) {
   await page.keyboard.press('Tab');
   assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), 'Skip to main content', `${name}: first Tab reaches skip link`);
 
+  const requiredFirstScreen = await page.locator('#hero-title, .lede, #try-demo, .action-note, .proof').evaluateAll(elements => elements.map(element => {
+    const box = element.getBoundingClientRect();
+    return { selector: element.id || element.className, bottom: box.bottom, visible: box.width > 0 && box.height > 0 };
+  }));
+  assert.deepEqual(requiredFirstScreen.filter(item => !item.visible || item.bottom > viewport.height), [], `${name}: required first-screen copy fits the viewport`);
+
+  await page.getByRole('link', { name: /Try it with sample data/ }).click();
+  assert.match(page.url(), /\?demo=1$/, `${name}: one-click demo query route`);
+  assert.equal(await page.locator('#workspace-title').evaluate(element => element === document.activeElement), true, `${name}: demo heading receives focus`);
+  assert.match(await page.locator('#route-status').innerText(), /Demo loaded.*ready/i, `${name}: demo route is announced`);
+  await page.goBack();
+  assert.equal(await page.locator('#hero-title').evaluate(element => element === document.activeElement), true, `${name}: Back restores heading focus`);
+  assert.match(await page.locator('#route-status').innerText(), /Home loaded/i, `${name}: Back route is announced`);
+
   await page.goto(new URL('/demo', base).href, { waitUntil: 'networkidle' });
   assert.equal(await page.title(), 'Demo — Proper Noun Lexicon', `${name}: demo title`);
   assert.match(await page.locator('#demo-banner').innerText(), /sample data, nothing is saved/i, `${name}: demo banner`);
@@ -73,6 +87,15 @@ await offlinePage.getByRole('button', { name: /Apply approved corrections/ }).cl
 assert.match(await offlinePage.getByLabel('Corrected transcript').innerText(), /Sociobot/, 'offline correction works');
 await offline.setOffline(false);
 await offline.close();
+
+const missing = await browser.newPage();
+await missing.goto(new URL('/does-not-exist', base).href);
+for (const selector of [
+  'meta[property="og:type"]', 'meta[property="og:title"]', 'meta[property="og:description"]',
+  'meta[property="og:url"]', 'meta[property="og:image"]', 'meta[name="twitter:card"]',
+  'meta[name="twitter:title"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]',
+]) assert.equal(await missing.locator(selector).count(), 1, `404 metadata: ${selector}`);
+await missing.close();
 
 await browser.close();
 console.log(JSON.stringify({ site: base, viewports: ['1440x1000', '390x844'], axe: '0 serious/critical', offline: true, reducedMotion: true, privacy: 'same-origin demo requests only' }, null, 2));

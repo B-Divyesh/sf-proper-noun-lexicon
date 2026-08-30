@@ -115,6 +115,78 @@ test('every visible landing-page link has a 44 by 44 CSS pixel target', async ({
   expect(undersized).toEqual([]);
 });
 
+test('route changes move focus, announce the destination, and restore focus on Back', async ({ page }) => {
+  await page.goto('/');
+  const demoLink = page.getByRole('link', { name: /Try it with sample data/ });
+  await demoLink.focus();
+  await demoLink.press('Enter');
+
+  await expect(page).toHaveURL(/\?demo=1$/);
+  await expect(page.locator('#workspace-title')).toBeFocused();
+  await expect(page.locator('#route-status')).toHaveText(/Demo loaded.*Sample vocabulary.*ready/i);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator('#hero-title')).toBeFocused();
+  await expect(page.locator('#route-status')).toHaveText(/Home loaded.*review desk/i);
+});
+
+test('the CLI action names the install steps it reveals', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'View CLI install steps' }).click();
+  await expect(page).toHaveURL(/#cli$/);
+  await expect(page.locator('#cli')).toBeInViewport();
+  await expect(page.locator('#cli')).toContainText('cargo install --path cli');
+});
+
+test('mobile first screen contains the job, audience, demo action, outcome, and three facts', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-390', 'This checks the required 390px first screen.');
+  await page.goto('/');
+  for (const selector of ['#hero-title', '.lede', '#try-demo', '.action-note', '.proof']) {
+    const box = await page.locator(selector).boundingBox();
+    expect(box, selector).not.toBeNull();
+    expect(box!.y + box!.height, selector).toBeLessThanOrEqual(844);
+  }
+  await expect(page.locator('html')).toHaveJSProperty('scrollWidth', 390);
+});
+
+test('every route has its own title and complete sharing metadata', async ({ page }) => {
+  const routes = [
+    ['/', 'Proper Noun Lexicon — correct dictated names'],
+    ['/demo', 'Demo — Proper Noun Lexicon'],
+    ['/privacy/', 'Privacy — Proper Noun Lexicon'],
+    ['/terms/', 'Terms — Proper Noun Lexicon'],
+    ['/404.html', 'Page not found — Proper Noun Lexicon'],
+  ] as const;
+  for (const [path, title] of routes) {
+    await page.goto(path);
+    await expect(page).toHaveTitle(title);
+    await expect(page.locator('main')).toHaveCount(1);
+    await expect(page.locator('h1')).toHaveCount(1);
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /\S/);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /^https:\/\/proper-noun-lexicon\.sociobot\.in\//);
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /\S/);
+    await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', /\S/);
+    await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', /^https:\/\/proper-noun-lexicon\.sociobot\.in\//);
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /og-preview\.webp$/);
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+    await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute('content', /\S/);
+    await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute('content', /\S/);
+    await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute('content', /og-preview\.webp$/);
+  }
+});
+
+test('legal and recovery pages expose working product links', async ({ page, request }) => {
+  for (const path of ['/privacy/', '/terms/', '/404.html']) {
+    await page.goto(path);
+    const links = await page.locator('a[href^="/"]').evaluateAll(items => [...new Set(items.map(item => (item as HTMLAnchorElement).getAttribute('href')!))]);
+    for (const href of links) {
+      const response = await request.get(href);
+      expect(response.status(), `${path} → ${href}`).toBeLessThan(400);
+    }
+  }
+});
+
 test('production purchase and license verification use only the production billing API', async ({ page }) => {
   const verifyRequests: string[] = [];
   await page.route('https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify**', async route => {
