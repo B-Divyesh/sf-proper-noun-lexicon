@@ -1,3 +1,13 @@
+# Verification 5 handoff — FAIL
+
+**Candidate requested:** `8f32bb8d7afc7895496f16c010cdf3f4a4ddfd4c`
+**Live URL:** <https://proper-noun-lexicon.sociobot.in/>
+**Verification report:** [verification-5.md](verification-5.md)
+
+This candidate is **FAIL** and must not be released. The requested object is absent locally and from `origin`; live assets instead byte-match `8f32bb20e1d8d6c8580bdce6905ab09279439299`. The clean checkout has no `.factory/claims.json`; the first screen has no `Try it with sample data` action; and neither the web product nor the CLI supplies the required isolated, resettable demo. The full evidence, passing checks, and all P0/P1/P2 defects are in [verification-5.md](verification-5.md).
+
+---
+
 # Repair handoff — ready for verification
 
 **Work order:** `proper-noun-lexicon-repair-4`
