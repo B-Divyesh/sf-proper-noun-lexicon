@@ -62,3 +62,5 @@ Clean clone: `/tmp/pnl-polish-clean.uerxEu`, commit `b80226ffb209c1a3cec8a03aa0b
 `/opt/fleet/lib/deploy-static.sh proper-noun-lexicon dist/site` completed successfully. Azure deployment ID: `06a197b3-2ba1-4355-a921-0c2ca71137ea`. Both `npm run verify:live` and `npm run verify:live:browser` passed afterward.
 
 **Unresolved findings:** none.
+
+**Latest external status:** the complete production check passed immediately after deployment. Beginning at 04:36 UTC, the shared Sociobot billing service returned HTTP 500 for its catalog and hosted-checkout routes across repeated cold probes. Its health route and invalid-license verifier continued returning 200, and the product site/browser checks remained green. This repository cannot change that shared service; the work order also forbids infrastructure or billing changes.
