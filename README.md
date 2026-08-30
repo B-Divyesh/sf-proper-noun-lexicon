@@ -1,8 +1,10 @@
 # Proper Noun Lexicon
 
-Proper Noun Lexicon is a private, portable vocabulary layer for people who use dictation or transcription. It imports approved names and spoken aliases, exports model-ready phrase hints, and applies only explicit corrections while preserving a reversible local audit. No audio or vocabulary is uploaded by the CLI or browser workspace.
+Proper Noun Lexicon is a local vocabulary layer for people who use dictation. It imports approved names and aliases, exports documented phrase hints, and changes only whole aliases. Every correction includes the untouched raw text for rollback.
 
-Live documentation and review desk: <https://proper-noun-lexicon.sociobot.in>
+Try the isolated sample: <https://proper-noun-lexicon.sociobot.in/demo>
+
+The demo sends no vocabulary or transcript away from the product origin. Its `demo:pnl:` storage never reads or changes the real workspace.
 
 ## Install
 
@@ -13,9 +15,18 @@ cargo install --path cli
 pnl --help
 ```
 
+Run the bundled sample without preparing files:
+
+```sh
+pnl demo
+# Prints a new temporary directory containing the complete review.
+```
+
+The sample sources live in `cli/examples/`. The command creates corrected text, a rollback audit, and all three model exports.
+
 ## Usage
 
-Create `names.csv` using `term,aliases` columns. Separate multiple aliases with `|`:
+Create `names.csv` with `term,aliases` columns. Separate aliases with `|`:
 
 ```csv
 term,aliases
@@ -51,7 +62,7 @@ pnl correct --lexicon team.pnl.json --input raw.txt --output corrected.txt --aud
 pnl rollback review.pnl-audit.json --output restored.txt
 ```
 
-Every command accepts `--json` for script-friendly status output, including invalid command-line arguments. Errors go to stderr and return a non-zero exit code. No command prompts interactively.
+Every command accepts `--json`, including invalid command-line arguments. Errors use stderr and a non-zero exit code. Commands never prompt interactively.
 
 ## Library API
 
@@ -83,13 +94,13 @@ fn main() -> Result<(), proper_noun_lexicon::PnlError> {
 Requirements: Rust 1.85+, Node 20+, npm 10+.
 
 ```sh
-npm install
+npm ci
 npm test
 npm run build
 npm run verify:live
 ```
 
-`npm run build` builds and tests the Rust CLI, creates release binaries, and outputs the static site at `dist/site/`. For site-only development use `npm run dev`; for the exact deploy artifact use `npm run build:site`.
+`npm run build` tests the CLI and site, builds the release binary, and writes the static site to `dist/site/`. Use `npm run dev` for local site work.
 `npm run verify:live` checks the deployed identity, response policy, asset budgets, production catalog entry, hosted-checkout redirect, and invalid-license response without making a purchase.
 
 Create a publishable Rust crate without uploading it:
@@ -98,9 +109,13 @@ Create a publishable Rust crate without uploading it:
 cargo package --manifest-path cli/Cargo.toml
 ```
 
-## Privacy and scope
+## Demo, privacy, and billing requests
 
-The project has no telemetry. The web workspace uses browser local storage for vocabulary, review drafts, and license state. It does not transcribe audio or train a speech model. See the site’s Privacy and Terms pages for details.
+The review desk stores vocabulary and drafts in browser local storage. It does not transcribe audio. Normal demo correction makes only product-origin requests.
+
+Successful automatic license checks are reused for 24 hours. If the billing gateway returns `429`, the app follows `Retry-After` and keeps the free or last verified state. The browser sends only the license token to the disclosed Sociobot verifier.
+
+See [.factory/demo.md](.factory/demo.md), [.factory/claims.json](.factory/claims.json), and the site’s Privacy and Terms pages for the test contracts.
 
 ## License
 

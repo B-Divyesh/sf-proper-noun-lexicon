@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { stampServiceWorker } from './release';
 
 const root = resolve(__dirname);
 const output = resolve(__dirname, '../dist/site');
@@ -24,7 +25,7 @@ function releaseVersionedServiceWorker() {
       const destination = resolve(output, 'sw.js');
       if (!existsSync(destination)) return;
       const source = readFileSync(template, 'utf8');
-      writeFileSync(destination, source.replaceAll('__PNL_RELEASE__', releaseId()));
+      writeFileSync(destination, stampServiceWorker(source, releaseId()));
     },
   };
 }
@@ -40,6 +41,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
+        notFound: resolve(__dirname, '404.html'),
         privacy: resolve(__dirname, 'privacy/index.html'),
         terms: resolve(__dirname, 'terms/index.html'),
       },

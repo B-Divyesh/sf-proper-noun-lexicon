@@ -4,9 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#071117" />
-    <meta name="description" content="Correct names, acronyms, and company vocabulary locally with an inspectable, reversible lexicon." />
-    <title>Proper Noun Lexicon — approved names, correctly written</title>
+    <meta name="description" content="Correct dictated names with approved spellings. Review every local change, restore raw text, and export speech-model hints." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Proper Noun Lexicon — correct dictated names" />
+    <meta property="og:description" content="Correct dictated names with approved spellings and keep every review on your device." />
+    <meta property="og:url" content="https://proper-noun-lexicon.sociobot.in/" />
+    <meta property="og:image" content="https://proper-noun-lexicon.sociobot.in/og-preview.webp" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glowing speech fragments linked to an ordered bank of vocabulary cards" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Proper Noun Lexicon — correct dictated names" />
+    <meta name="twitter:description" content="Correct dictated names with approved spellings and keep every review on your device." />
+    <meta name="twitter:image" content="https://proper-noun-lexicon.sociobot.in/og-preview.webp" />
+    <title>Proper Noun Lexicon — correct dictated names</title>
+    <link rel="canonical" href="https://proper-noun-lexicon.sociobot.in/" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
   </head>
   <body>
@@ -17,25 +31,31 @@
         <span>Proper Noun Lexicon</span>
       </a>
       <nav aria-label="Primary navigation">
+        <a href="/demo">Demo</a>
         <a href="#workspace">Review desk</a>
-        <a href="#cli">CLI</a>
         <a href="#pricing">Pricing</a>
       </nav>
       <span class="connection-status" id="connection-status"><span aria-hidden="true">●</span> Local &amp; ready</span>
     </header>
 
+    <aside class="demo-banner" id="demo-banner" aria-label="Demo controls" hidden>
+      <p><strong>Demo</strong> — sample data, nothing is saved to your workspace.</p>
+      <div><button id="reset-demo" type="button">Reset demo</button><a href="/#workspace" id="start-real">Start for real</a></div>
+    </aside>
+
     <main id="main">
       <section class="hero" aria-labelledby="hero-title">
         <img src="/lexical-landscape.webp" width="1280" height="853" alt="Glowing speech fragments connected to an ordered bank of translucent vocabulary cards" fetchpriority="high" />
         <div class="hero-copy">
-          <p class="eyebrow"><span aria-hidden="true">⌁</span> Your vocabulary stays yours</p>
-          <h1 id="hero-title">Names in.<br /><em>Guesswork out.</em></h1>
-          <p class="lede">A private vocabulary layer for dictation. Map what speech engines hear to the exact names you approve—then inspect, export, or undo every change.</p>
+          <p class="eyebrow"><span aria-hidden="true">⌁</span> Local vocabulary for dictation</p>
+          <h1 id="hero-title">Correct dictated names from <em>your vocabulary.</em></h1>
+          <p class="lede">For people who dictate work, it turns chosen aliases into exact names without sending transcripts away.</p>
           <div class="hero-actions">
-            <a class="button primary" href="#workspace">Open the review desk <span aria-hidden="true">↓</span></a>
-            <a class="button quiet" href="#cli">Use the CLI</a>
+            <a class="button primary" id="try-demo" href="/demo">Try it with sample data <span aria-hidden="true">→</span></a>
+            <span class="action-note">Loads three terms and one raw transcript.</span>
+            <a class="button quiet" href="#cli">Install the CLI</a>
           </div>
-          <p class="proof"><span aria-hidden="true">✓</span> No audio upload&nbsp;&nbsp; <span aria-hidden="true">✓</span> No automatic guessing&nbsp;&nbsp; <span aria-hidden="true">✓</span> Raw text preserved</p>
+          <ul class="proof" aria-label="Product facts"><li><span aria-hidden="true">✓</span> Stored in this browser</li><li><span aria-hidden="true">✓</span> Works offline after the first visit</li><li><span aria-hidden="true">✓</span> Free for 25 terms</li></ul>
         </div>
       </section>
 
@@ -117,9 +137,18 @@
         </div>
       </section>
 
+      <section class="how-section" aria-labelledby="how-title">
+        <div class="section-heading compact-heading"><div><p class="eyebrow">How it works</p><h2 id="how-title">Review names in three steps.</h2></div></div>
+        <ol class="how-list">
+          <li><strong>Approve spellings.</strong><span>Import a CSV or add each name and spoken alias.</span></li>
+          <li><strong>Review corrections.</strong><span>Paste raw text and inspect only the aliases you approved.</span></li>
+          <li><strong>Keep the evidence.</strong><span>Export the corrected text, raw copy, audit, or model hint.</span></li>
+        </ol>
+      </section>
+
       <section class="exports-section" aria-labelledby="exports-title">
         <div class="section-heading compact-heading">
-          <div><p class="eyebrow">Portable by design</p><h2 id="exports-title">Carry the same spelling everywhere.</h2></div>
+          <div><p class="eyebrow">Model exports</p><h2 id="exports-title">Export speech-model phrase hints.</h2></div>
           <p>Generate inputs for documented phrase-bias interfaces, or use the same lexicon with the offline CLI.</p>
         </div>
         <div class="export-grid">
@@ -135,22 +164,29 @@
           </div>
           <div class="cli-card glass" id="cli">
             <p class="pane-kicker">Offline automation</p>
-            <h3>Make it repeatable with <code>pnl</code>.</h3>
-            <p>One small Rust binary. No daemon, account, telemetry, or network access.</p>
+            <h3>Run the same workflow with <code>pnl</code>.</h3>
+            <p>One Rust binary runs the same workflow on local files.</p>
             <pre><code><span>$</span> cargo install --path cli
+<span>$</span> pnl demo
 <span>$</span> pnl import names.csv -o team.json
 <span>$</span> pnl correct -l team.json -i raw.txt \
     -o corrected.txt -a audit.json</code></pre>
-            <a class="text-button" href="https://github.com/B-Divyesh/sf-proper-noun-lexicon">View source and install guide <span aria-hidden="true">↗</span></a>
+            <a class="text-button" href="https://github.com/B-Divyesh/sf-proper-noun-lexicon">View source and install guide (external) <span aria-hidden="true">↗</span></a>
           </div>
         </div>
       </section>
 
+      <section class="privacy-section" aria-labelledby="privacy-title">
+        <div><p class="eyebrow">What it does not do</p><h2 id="privacy-title">Your transcript stays out of our systems.</h2></div>
+        <p>The review desk does not transcribe audio or send vocabulary away. License checks send only the license token to Sociobot.</p>
+        <a class="text-button" href="/privacy/">Read the privacy policy</a>
+      </section>
+
       <section class="pricing-section" id="pricing" aria-labelledby="pricing-title">
-        <div class="pricing-copy"><p class="eyebrow">Own your terminology</p><h2 id="pricing-title">Useful for free.<br />Unlimited for <em>$29 once.</em></h2><p>No subscription. The free workspace includes 25 terms, every model export, audits, and rollback. The one-time license removes the term limit on your devices.</p></div>
+        <div class="pricing-copy"><p class="eyebrow">Browser pricing</p><h2 id="pricing-title">Use 25 terms free.<br />Remove the limit for <em>$29 once.</em></h2><p>No subscription. The free workspace includes 25 terms, every model export, audits, and rollback. The one-time license removes the term limit on your devices.</p></div>
         <div class="license-card glass">
           <div class="license-head"><span class="license-orb" aria-hidden="true">∞</span><div><p>Permanent license</p><strong>$29 <small>one-time</small></strong></div></div>
-          <ul><li>Unlimited approved terms</li><li>Every current and future export format</li><li>Local correction audits and raw rollback</li><li>Use on your own devices</li></ul>
+          <ul><li>Unlimited approved terms</li><li>All three current export formats</li><li>Local correction audits and raw rollback</li><li>Use on your own devices</li></ul>
           <a class="button primary full" id="buy-link" href="https://api.sociobot.in/api/v1/products/proper-noun-lexicon/checkout">Buy permanent access</a>
           <button class="text-button full" id="show-license" type="button">Have a license? Restore it</button>
           <form id="license-form" class="license-form" hidden>
@@ -163,7 +199,7 @@
       </section>
     </main>
 
-    <footer><a class="brand" href="/"><span class="brand-mark" aria-hidden="true">P<span>N</span></span><span>Proper Noun Lexicon</span></a><p>Names should be exact. Corrections should be reversible.</p><nav aria-label="Footer"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-proper-noun-lexicon">GitHub</a></nav></footer>
+    <footer><a class="brand" href="/"><span class="brand-mark" aria-hidden="true">P<span>N</span></span><span>Proper Noun Lexicon</span></a><p>Correct approved names and keep the raw text. <span class="build-id">v0.1.3</span></p><nav aria-label="Footer"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-proper-noun-lexicon">GitHub <span class="visually-hidden">(external)</span></a></nav><span class="factory-credit">Built by Param Factory</span></footer>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script type="module" src="/src/app.ts"></script>
   </body>

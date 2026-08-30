@@ -2,12 +2,23 @@ import './styles.css';
 import { byteOffsetToStringIndex, correct, exportPayload, parseCsv, toCsv, validateEntries, type Audit, type Entry } from './core';
 
 const SLUG = 'proper-noun-lexicon';
-const STORAGE_KEY = 'pnl:workspace:v1';
-const RECOVERY_KEY = 'pnl:workspace:recovery:v1';
+const routePath = location.pathname.replace(/\/+$/, '') || '/';
+const DEMO_MODE = routePath === '/demo' || new URL(location.href).searchParams.get('demo') === '1';
+const DEMO_PREFIX = 'demo:pnl:';
+const STORAGE_KEY = DEMO_MODE ? `${DEMO_PREFIX}workspace:v1` : 'pnl:workspace:v1';
+const RECOVERY_KEY = DEMO_MODE ? `${DEMO_PREFIX}workspace:recovery:v1` : 'pnl:workspace:recovery:v1';
 const LICENSE_KEY = `sb_license:${SLUG}`;
 const VERDICT_KEY = `sb_license_verdict:${SLUG}`;
+const RETRY_KEY = `sb_license_retry:${SLUG}`;
 const VERIFY_URL = `https://api.sociobot.in/api/v1/products/${SLUG}/verify`;
+const VERIFY_INTERVAL_MS = 86_400_000;
 const FREE_LIMIT = 25;
+const SAMPLE_ENTRIES: Entry[] = [
+  { term: 'Sociobot', aliases: ['socio bot', 'soshio bot'] },
+  { term: 'Kubernetes', aliases: ['cuber netties', 'kube er net ease'] },
+  { term: 'API', aliases: ['A P I'] },
+];
+const SAMPLE_RAW = 'Ask socio bot whether the cuber netties A P I is ready.';
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const termList = $('#term-list');
@@ -33,7 +44,7 @@ function announce(message: string): void {
 function save(): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ entries, raw: rawInput.value }));
-    $('#save-state').textContent = 'Saved locally';
+    $('#save-state').textContent = DEMO_MODE ? 'Demo copy only' : 'Saved locally';
   } catch {
     $('#save-state').textContent = 'Local save unavailable';
     $('#save-state').classList.add('warning');
@@ -126,12 +137,9 @@ $('#csv-file').addEventListener('change', async event => {
 });
 
 $('#load-sample').addEventListener('click', () => {
-  const sample = [
-    { term: 'Sociobot', aliases: ['socio bot', 'soshio bot'] },
-    { term: 'Kubernetes', aliases: ['cuber netties', 'kube er net ease'] },
-    { term: 'API', aliases: ['A P I'] },
-  ];
-  if (addEntries(sample, true)) { rawInput.value = 'Ask socio bot whether the cuber netties A P I is ready.'; save(); announce('Sample loaded. Try applying corrections.'); }
+  if (addEntries(SAMPLE_ENTRIES.map(entry => ({ ...entry, aliases: [...entry.aliases] })), true)) {
+    rawInput.value = SAMPLE_RAW; save(); announce('Sample loaded. Try applying corrections.');
+  }
 });
 
 function download(name: string, value: string, type: string): void {
@@ -260,12 +268,35 @@ function setPro(value: boolean, status = ''): void {
 async function verifyLicense(token: string, force = false): Promise<void> {
   let cached: { valid: boolean; checkedAt: number; token: string } | null = null;
   try { cached = JSON.parse(localStorage.getItem(VERDICT_KEY) || 'null'); } catch { /* verify fresh */ }
-  if (!force && cached?.token === token && Date.now() - cached.checkedAt < 86_400_000) { setPro(cached.valid); return; }
+  let limitedUntil = 0;
+  try {
+    const retry = JSON.parse(localStorage.getItem(RETRY_KEY) || 'null') as { token?: string; retryAt?: number } | null;
+    if (retry?.token === token && typeof retry.retryAt === 'number') limitedUntil = retry.retryAt;
+  } catch { /* retry now */ }
+  if (limitedUntil > Date.now()) {
+    const retrySeconds = Math.max(1, Math.ceil((limitedUntil - Date.now()) / 1000));
+    const status = `Too many license checks. Try again in ${retrySeconds} seconds; ${cached?.valid ? 'the last verified license remains active' : 'the free workspace still works'}.`;
+    setPro(Boolean(cached?.valid), status);
+    return;
+  }
+  if (!force && cached?.token === token && Date.now() - cached.checkedAt < VERIFY_INTERVAL_MS) { setPro(cached.valid); return; }
   $('#license-status').textContent = navigator.onLine ? 'Checking license…' : 'Offline — cached license state kept.';
   try {
     const response = await fetch(`${VERIFY_URL}?license=${encodeURIComponent(token)}`, { headers: { accept: 'application/json' } });
+    if (response.status === 429) {
+      const retryHeader = response.headers.get('retry-after');
+      const retryDate = retryHeader && !/^\d+$/.test(retryHeader) ? Date.parse(retryHeader) : Number.NaN;
+      const retrySeconds = retryHeader && /^\d+$/.test(retryHeader) ? Number(retryHeader) : null;
+      const retryAt = retrySeconds === null ? (Number.isNaN(retryDate) ? Date.now() + 60_000 : retryDate) : Date.now() + retrySeconds * 1000;
+      localStorage.setItem(RETRY_KEY, JSON.stringify({ token, retryAt }));
+      const retryText = retrySeconds === null ? 'later' : `in ${retrySeconds} seconds`;
+      if (cached?.token === token && cached.valid) setPro(true, `Too many license checks. Try again ${retryText}; the last verified license remains active.`);
+      else setPro(false, `Too many license checks. Try again ${retryText}; the free workspace still works.`);
+      return;
+    }
     if (!response.ok) throw new Error('verification service unavailable');
     const verdict = await response.json() as { valid: boolean; reason?: string };
+    localStorage.removeItem(RETRY_KEY);
     localStorage.setItem(VERDICT_KEY, JSON.stringify({ valid: verdict.valid, checkedAt: Date.now(), token }));
     setPro(verdict.valid, verdict.valid ? '✓ License verified. Permanent access is active.' : 'License no longer active. You can keep using the free workspace or buy a new license.');
   } catch {
@@ -283,7 +314,7 @@ function initLicense(): void {
       const cached = JSON.parse(localStorage.getItem(VERDICT_KEY) || 'null');
       if (cached?.valid && cached.token === token) setPro(true, '✓ Permanent access active. Verifying quietly…');
     } catch { /* verify below */ }
-    void verifyLicense(token);
+    void verifyLicense(token, Boolean(returned));
   }
 }
 
@@ -291,7 +322,7 @@ $('#show-license').addEventListener('click', () => { const form = $<HTMLFormElem
 $('#license-form').addEventListener('submit', event => {
   event.preventDefault(); const token = $<HTMLInputElement>('#license-token').value.trim();
   if (!token) { $('#license-status').textContent = 'Paste the license token from your receipt.'; return; }
-  localStorage.setItem(LICENSE_KEY, token); void verifyLicense(token, true);
+  localStorage.setItem(LICENSE_KEY, token); void verifyLicense(token);
 });
 
 function connectionState(): void {
@@ -299,5 +330,52 @@ function connectionState(): void {
 }
 addEventListener('online', connectionState); addEventListener('offline', connectionState);
 
-load(); renderEntries(); connectionState(); initLicense();
+function removeDemoStorage(): void {
+  for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+    const key = localStorage.key(index);
+    if (key?.startsWith(DEMO_PREFIX)) localStorage.removeItem(key);
+  }
+}
+
+function seedDemo(): void {
+  entries = SAMPLE_ENTRIES.map(entry => ({ ...entry, aliases: [...entry.aliases] }));
+  rawInput.value = SAMPLE_RAW;
+  resetReview();
+  save();
+}
+
+function initDemo(): void {
+  if (!DEMO_MODE) return;
+  document.body.classList.add('demo-mode');
+  $('#demo-banner').hidden = false;
+  document.title = 'Demo — Proper Noun Lexicon';
+  document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute('href', 'https://proper-noun-lexicon.sociobot.in/demo');
+  document.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.setAttribute('content', 'https://proper-noun-lexicon.sociobot.in/demo');
+  document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.setAttribute('content', 'Demo — Proper Noun Lexicon');
+  document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]')?.setAttribute('content', 'Demo — Proper Noun Lexicon');
+  try {
+    if (localStorage.getItem(STORAGE_KEY) === null) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ entries: SAMPLE_ENTRIES, raw: SAMPLE_RAW }));
+    }
+  } catch {
+    entries = SAMPLE_ENTRIES.map(entry => ({ ...entry, aliases: [...entry.aliases] }));
+    rawInput.value = SAMPLE_RAW;
+  }
+}
+
+$('#reset-demo').addEventListener('click', () => {
+  removeDemoStorage();
+  seedDemo();
+  renderEntries();
+  announce('Demo reset to the original sample.');
+});
+$('#start-real').addEventListener('click', () => removeDemoStorage());
+
+initDemo(); load(); renderEntries(); connectionState();
+if (!DEMO_MODE) initLicense();
+if (DEMO_MODE) requestAnimationFrame(() => {
+  document.documentElement.classList.add('instant-scroll');
+  window.scrollTo(0, $('#workspace').offsetTop + 96);
+  document.documentElement.classList.remove('instant-scroll');
+});
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => { /* online app remains available */ }));

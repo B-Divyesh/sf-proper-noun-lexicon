@@ -20,6 +20,11 @@ assert.match(html, /<html[^>]+lang="en"/i, 'live HTML must declare English');
 assert.match(html, /<title>[^<]*Proper Noun Lexicon[^<]*<\/title>/i, 'live title must identify the product');
 assert.equal((html.match(/<h1\b/gi) || []).length, 1, 'live HTML must have one h1');
 assert.equal((html.match(/<main\b/gi) || []).length, 1, 'live HTML must have one main landmark');
+assert.match(html, /<link[^>]+rel="canonical"[^>]+proper-noun-lexicon\.sociobot\.in/i, 'live HTML must declare its canonical URL');
+assert.match(html, /property="og:image"[^>]+og-preview\.webp/i, 'live HTML must expose the product social image');
+assert.match(html, /name="twitter:card"/i, 'live HTML must expose Twitter card metadata');
+assert.match(html, /rel="apple-touch-icon"/i, 'live HTML must expose an Apple touch icon');
+assert.match(html, /Try it with sample data/i, 'first screen must link to the sample demo');
 requireHeader(page, 'content-security-policy', /default-src 'self'/);
 requireHeader(page, 'permissions-policy', /microphone=\(\)/);
 requireHeader(page, 'strict-transport-security', /max-age=/);
@@ -41,6 +46,15 @@ assert.equal(serviceWorker.status, 200, 'service worker must load');
 requireHeader(serviceWorker, 'cache-control', /no-cache/);
 assert.match(await serviceWorker.text(), /pnl-shell-[a-f0-9]{40}/, 'service worker cache must be release-stamped');
 
+const demoResponse = await request(new URL('/demo', siteUrl));
+assert.equal(demoResponse.status, 200, 'demo route must load directly');
+const demoHtml = await demoResponse.text();
+assert.match(demoHtml, /sample data, nothing is saved/i, 'demo route must include its persistent sandbox banner');
+
+const missingResponse = await request(new URL('/definitely-not-a-page', siteUrl));
+assert.equal(missingResponse.status, 404, 'unknown routes must return HTTP 404');
+assert.match(await missingResponse.text(), /This page does not exist/i, '404 response must use the designed recovery page');
+
 const catalogResponse = await request('https://api.sociobot.in/api/v1/products');
 assert.equal(catalogResponse.status, 200, 'production product catalog must load');
 const catalog = await catalogResponse.json();
@@ -60,6 +74,7 @@ assert.match(checkout.headers.get('location') || '', /^https:\/\/checkout\.dodop
 
 const invalidResponse = await request(`${apiUrl}/verify?license=qa-invalid-token`);
 assert.equal(invalidResponse.status, 200, 'license verifier must be reachable');
+requireHeader(invalidResponse, 'cache-control', /no-store/);
 const invalid = await invalidResponse.json();
 assert.deepEqual(invalid, { expires_at: null, reason: 'invalid', valid: false });
 

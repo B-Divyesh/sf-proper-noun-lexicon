@@ -38,6 +38,8 @@ UI transitions last 180–240 ms and animate only opacity and transform. A corre
 ## Asset plan and provenance
 
 - `site/public/lexical-landscape.webp`: original AI-generated atmospheric hero plate, made for this product with `/opt/fleet/lib/gen-image.sh` using the factory `factory-image` deployment on 2026-08-28. Prompt: “Abstract luminous glass data landscape for a privacy-first proper noun pronunciation lexicon: floating translucent phonetic tokens connected by precise mint light paths, deep ink observatory background, hints of waveform contours and ordered index cards, elegant editorial 3D illustration, cyan mint and soft violet accents, wide cinematic composition with generous dark negative space on the left for interface copy, no people, no letters, no words, no logos, no watermark.” Converted locally to WebP at quality 78; final size 64 KB. Generated imagery is used only as an explanatory atmosphere behind the mapping demo.
+- `site/public/og-preview.webp`: deterministic 1200 × 630 center crop of the original `lexical-landscape.webp`, made locally with ImageMagick on 2026-08-30. It introduces no new generated content and preserves the original asset's prompt and provenance.
+- `site/public/apple-touch-icon.png`: deterministic 180 × 180 Chromium rasterization of the hand-authored `site/public/icon.svg`, made locally on 2026-08-30.
 - Icons are original inline SVG strokes assembled locally from simple geometric primitives; no external asset library.
 
 The hero’s connected token forms directly explain the product: speech fragments become stable, approved names. The decorative layer never carries required information.

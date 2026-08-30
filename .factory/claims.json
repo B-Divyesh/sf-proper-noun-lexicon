@@ -1,0 +1,72 @@
+[
+  {
+    "id": "demo-sandbox",
+    "claim": "The web demo loads sample vocabulary and a transcript without reading or changing the real workspace.",
+    "where": "Landing primary action, demo banner, README",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:demo-sandbox",
+    "sandbox": "Fresh browser context with a seeded real workspace; enter /demo, edit/reset, leave demo, and compare real and demo storage."
+  },
+  {
+    "id": "local-privacy",
+    "claim": "Normal demo correction sends no vocabulary or transcript away from the product origin.",
+    "where": "Landing facts, privacy section, README",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:local-privacy",
+    "sandbox": "Fresh /demo context; record every request during correction and assert only the local product origin plus demo-prefixed storage."
+  },
+  {
+    "id": "offline-reload",
+    "claim": "The review desk works offline after the first visit.",
+    "where": "Landing facts, README",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:offline-reload",
+    "sandbox": "Dedicated fresh browser context; install and control /demo, reload once online, set the context offline, reload, and correct the sample."
+  },
+  {
+    "id": "approved-reversible",
+    "claim": "Corrections are case-insensitive, prefer the longest approved whole alias, and Restore raw returns the exact source text.",
+    "where": "Landing, review desk, README",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:approved-reversible",
+    "sandbox": "Fresh /demo sample with three approved aliases and an unapproved boundary case; assert correction count and byte-for-byte restored input."
+  },
+  {
+    "id": "model-exports",
+    "claim": "The same vocabulary exports a Whisper prompt, Google inline PhraseSet, and Azure phrase list.",
+    "where": "Exports section, README",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:model-exports",
+    "sandbox": "Fresh /demo sample; inspect all three generated payloads and validate the documented Google and Azure JSON shapes."
+  },
+  {
+    "id": "free-limit",
+    "claim": "The browser workspace supports 25 terms for free; a verified $29 one-time license removes that limit.",
+    "where": "Landing facts, pricing, README",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:free-limit",
+    "sandbox": "Start at /demo, leave for a clean real workspace, reject a 26-term CSV, use a recorded valid verifier response, then accept the same CSV."
+  },
+  {
+    "id": "cli-demo",
+    "claim": "pnl demo runs bundled sample data in a new temporary directory and creates corrected text, a rollback audit, and three model exports.",
+    "where": "CLI section, CLI help, README",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:cli-demo",
+    "sandbox": "Run the compiled CLI demo without arguments, assert its temporary path and eight outputs, inspect the audit, then delete only that temporary directory."
+  },
+  {
+    "id": "license-request-policy",
+    "claim": "Successful automatic license checks are reused for 24 hours, and a rate-limited response is not retried before Retry-After.",
+    "where": "README billing request policy",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:license-request-policy",
+    "sandbox": "Start at /demo, leave for the real workspace, use recorded 200 and 429 verifier fixtures, reload, and count outgoing verification requests."
+  },
+  {
+    "id": "cli-json",
+    "claim": "Every CLI command supports machine-readable JSON results, including command-line validation errors, without an interactive prompt.",
+    "where": "README and CLI help",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:cli-json",
+    "sandbox": "Run the local CLI with --json and an invalid export format; assert exit 2, empty stdout, and one parseable JSON error on stderr."
+  },
+  {
+    "id": "typed-library",
+    "claim": "The packaged crate exposes the documented typed Rust import, correction, audit, and export API.",
+    "where": "README and packaged crate README",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:typed-library",
+    "sandbox": "Compile and execute the crate-level documentation example that imports CSV, corrects text, preserves raw input, and exports Google Speech JSON."
+  }
+]

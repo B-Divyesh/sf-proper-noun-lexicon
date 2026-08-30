@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.3 — 2026-08-30
+
+- Add isolated one-click web demo state under `/demo` with reset and clean exit controls.
+- Add `pnl demo` with bundled sample data and a complete temporary output set.
+- Declare every visitor-facing product claim with an executable demo regression.
+- Add a designed 404, complete route metadata, and social/icon assets derived from the original artwork.
+- Replace the cold double-build service-worker test with deterministic release-stamping coverage.
+- Cache successful license checks for 24 hours and honor gateway `Retry-After` responses.
+
 ## 0.1.2 — 2026-08-30
 
 - Refuse correction output/audit aliases before writing, including `.`/`..`, symlinked-parent, and hard-link paths.

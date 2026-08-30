@@ -12,7 +12,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
     name = "pnl",
     version,
     about = "Private proper-noun corrections and speech-model phrase exports",
-    long_about = "Import an approved terminology CSV, export model-specific phrase hints, or correct a transcript with a reversible local audit. No network access and no interactive prompts."
+    long_about = "Import an approved terminology CSV, export model-specific phrase hints, or correct a transcript with a reversible local audit. Inputs and outputs are local files, and commands do not prompt."
 )]
 struct Cli {
     #[arg(long, global = true, help = "Print a machine-readable JSON result")]
@@ -23,6 +23,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Run the complete workflow on bundled sample data in a temporary directory
+    Demo,
     /// Import a term,aliases CSV into a portable lexicon
     Import {
         input: PathBuf,
@@ -63,6 +65,9 @@ enum Command {
         output: PathBuf,
     },
 }
+
+const DEMO_CSV: &str = include_str!("../examples/sample-terms.csv");
+const DEMO_RAW: &str = include_str!("../examples/raw-transcript.txt");
 
 fn read_lexicon(path: &Path) -> Result<Lexicon, String> {
     let content =
@@ -281,8 +286,92 @@ fn write_correction_pair(
     Ok(())
 }
 
+fn create_demo_directory() -> Result<PathBuf, String> {
+    let base = std::env::temp_dir();
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    for attempt in 0..32 {
+        let directory = base.join(format!(
+            "proper-noun-lexicon-demo-{}-{nonce}-{attempt}",
+            std::process::id()
+        ));
+        match fs::create_dir(&directory) {
+            Ok(()) => return Ok(directory),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => {
+                return Err(format!(
+                    "could not create demo directory {}: {error}",
+                    directory.display()
+                ));
+            }
+        }
+    }
+    Err("could not create a unique demo directory".into())
+}
+
+fn run_demo_in(directory: &Path) -> Result<serde_json::Value, String> {
+    let csv_path = directory.join("sample-terms.csv");
+    let raw_path = directory.join("raw-transcript.txt");
+    let lexicon_path = directory.join("sample.pnl.json");
+    let corrected_path = directory.join("corrected.txt");
+    let audit_path = directory.join("review.pnl-audit.json");
+    let whisper_path = directory.join("whisper-prompt.txt");
+    let google_path = directory.join("google-phrase-set.json");
+    let azure_path = directory.join("azure-phrase-list.json");
+
+    write(&csv_path, DEMO_CSV)?;
+    write(&raw_path, DEMO_RAW)?;
+    let lexicon = import_csv(DEMO_CSV, "sample vocabulary").map_err(|error| error.to_string())?;
+    write(
+        &lexicon_path,
+        &(serde_json::to_string_pretty(&lexicon).map_err(|error| error.to_string())? + "\n"),
+    )?;
+    let audit =
+        proper_noun_lexicon::correct(DEMO_RAW, &lexicon).map_err(|error| error.to_string())?;
+    let audit_json =
+        serde_json::to_string_pretty(&audit).map_err(|error| error.to_string())? + "\n";
+    write_correction_pair(&corrected_path, &audit.corrected, &audit_path, &audit_json)?;
+    write(
+        &whisper_path,
+        &export(&lexicon, ExportFormat::Whisper).map_err(|error| error.to_string())?,
+    )?;
+    write(
+        &google_path,
+        &export(&lexicon, ExportFormat::GoogleSpeech).map_err(|error| error.to_string())?,
+    )?;
+    write(
+        &azure_path,
+        &export(&lexicon, ExportFormat::AzureSpeech).map_err(|error| error.to_string())?,
+    )?;
+
+    Ok(json!({
+        "ok": true,
+        "command": "demo",
+        "directory": directory,
+        "entries": lexicon.entries.len(),
+        "changes": audit.changes.len(),
+        "corrected": audit.corrected,
+        "files": [
+            csv_path, raw_path, lexicon_path, corrected_path, audit_path,
+            whisper_path, google_path, azure_path
+        ]
+    }))
+}
+
 fn run(cli: Cli) -> Result<serde_json::Value, String> {
     match cli.command {
+        Command::Demo => {
+            let directory = create_demo_directory()?;
+            match run_demo_in(&directory) {
+                Ok(result) => Ok(result),
+                Err(error) => {
+                    let _ = fs::remove_dir_all(&directory);
+                    Err(error)
+                }
+            }
+        }
         Command::Import {
             input,
             output,
@@ -392,7 +481,18 @@ fn main() {
             println!("{}", serde_json::to_string(&result).expect("JSON result"))
         }
         Ok(result) => {
-            if result["command"] != "list" {
+            if result["command"] == "demo" {
+                println!(
+                    "Demo complete — sample data was written only to {}.",
+                    result["directory"]
+                        .as_str()
+                        .unwrap_or("a temporary directory")
+                );
+                println!(
+                    "Corrected sample: {}",
+                    result["corrected"].as_str().unwrap_or("")
+                );
+            } else if result["command"] != "list" {
                 println!(
                     "Done — {}.",
                     result["command"].as_str().unwrap_or("operation")
@@ -458,6 +558,30 @@ mod tests {
             fs::read_to_string(restored).unwrap(),
             fs::read_to_string(raw).unwrap()
         );
+    }
+
+    #[test]
+    fn demo_runs_the_shipped_sample_in_an_isolated_directory() {
+        let parent = tempdir().unwrap();
+        let directory = parent.path().join("demo-output");
+        fs::create_dir(&directory).unwrap();
+
+        let result = run_demo_in(&directory).unwrap();
+
+        assert_eq!(result["entries"], 3);
+        assert_eq!(result["changes"], 3);
+        assert_eq!(
+            fs::read_to_string(directory.join("corrected.txt")).unwrap(),
+            "Ask Sociobot whether the Kubernetes API is ready.\n"
+        );
+        let audit: Audit = serde_json::from_str(
+            &fs::read_to_string(directory.join("review.pnl-audit.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(audit.raw, DEMO_RAW);
+        assert!(directory.join("whisper-prompt.txt").is_file());
+        assert!(directory.join("google-phrase-set.json").is_file());
+        assert!(directory.join("azure-phrase-list.json").is_file());
     }
 
     #[test]

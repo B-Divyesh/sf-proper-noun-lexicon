@@ -183,10 +183,40 @@ test('restore, daily verification cache, revocation, and offline fallback preser
   await expect(page.locator('#license-status')).toContainText('Offline — using the last verified license');
 });
 
+test('@claim:license-request-policy caches successful checks for one day and honors Retry-After', async ({ page }) => {
+  let successfulRequests = 0;
+  let limitedRequests = 0;
+  await page.route('https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify**', route => {
+    if (route.request().url().includes('qa-daily-token')) {
+      successfulRequests += 1;
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ valid: true, reason: 'ok', expires_at: null }) });
+    }
+    limitedRequests += 1;
+    return route.fulfill({ status: 429, headers: { 'retry-after': '120', 'access-control-expose-headers': 'Retry-After' }, contentType: 'application/json', body: '{"error":"rate_limited"}' });
+  });
+  await page.goto('/demo');
+  await page.getByRole('link', { name: 'Start for real' }).click();
+  await page.goto('/?license=qa-daily-token');
+  await expect(page.locator('#license-status')).toContainText('License verified');
+  await page.reload();
+  expect(successfulRequests).toBe(1);
+
+  await page.goto('/?license=qa-rate-limited-token');
+  await expect(page.locator('#license-status')).toContainText('Try again in 120 seconds');
+  await expect(page.locator('#license-status')).toContainText('free workspace still works');
+  expect(limitedRequests).toBe(1);
+
+  await page.reload();
+  await expect(page.locator('#license-status')).toContainText('Too many license checks');
+  expect(limitedRequests).toBe(1);
+});
+
 test('has no serious or critical accessibility violations', async ({ page }) => {
-  await page.goto('/');
-  const results = await new AxeBuilder({ page }).analyze();
-  expect(results.violations.filter(item => ['serious', 'critical'].includes(item.impact || ''))).toEqual([]);
+  for (const path of ['/', '/demo', '/privacy/', '/terms/', '/404.html']) {
+    await page.goto(path);
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations.filter(item => ['serious', 'critical'].includes(item.impact || '')), path).toEqual([]);
+  }
 });
 
 test('legal pages expose one main heading', async ({ page }) => {
