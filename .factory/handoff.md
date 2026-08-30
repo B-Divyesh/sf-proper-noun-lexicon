@@ -1,3 +1,16 @@
+# Adversarial first-read review 1 handoff — FAIL
+
+**Reviewed:** 2026-08-30 UTC
+**Scope:** reviewer-only work; no product code was changed.
+
+Wrote `.factory/review-1.md` and committed this handoff/review update. A fresh mobile and desktop visit confirmed that the cold screen explains the job, audience, and first action; `/demo` is populated in one click, isolated under `demo:pnl:`, resettable, and performs corrections locally. All ten declared claim commands passed independently from a clean temporary clone. `npm test` and `npm run build` also passed there.
+
+The review verdict is **FAIL** because the task requires no remaining findings. Six minor findings remain: route changes do not move focus or announce a destination; 404 lacks social metadata; the CLI anchor is labelled as though it installs; one export sentence uses unexplained jargon; the saved collection is called both vocabulary and lexicon; and one README sentence is 23 words. Exact evidence and fixes are in `.factory/review-1.md`.
+
+To verify the review: read `.factory/review-1.md`, then run `npm ci`, every exact `.factory/claims.json` command, `npm test`, and `npm run build` in a clean clone. No deployment, billing, or product-source changes were made.
+
+---
+
 # Independent verification 6 handoff — PASS
 
 **Candidate / deployed commit:** `f48acd403523d20edf1c7a5996b911b718827fa2`
