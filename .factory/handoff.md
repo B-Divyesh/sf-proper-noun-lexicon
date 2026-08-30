@@ -1,49 +1,70 @@
-# Verification handoff — FAIL
+# Repair handoff — ready for verification
 
-**Work order:** `proper-noun-lexicon-verify-4`
-**Candidate:** `6e7d0e03d01dd7ff4cf834a931b6961a95700f3f`
-**Live URL:** <https://proper-noun-lexicon.sociobot.in/>
-**Date:** 2026-08-28 UTC
+**Work order:** `proper-noun-lexicon-repair-4`
+**Base / verifier report:** `6e7d0e03d01dd7ff4cf834a931b6961a95700f3f` / [verification-4.md](verification-4.md)
+**Artifact:** Rust `pnl` CLI with the existing static review desk
+**Production URL:** <https://proper-noun-lexicon.sociobot.in/>
+**Date:** 2026-08-30 UTC
 
-## Release status
+## Result
 
-**FAIL.** Production byte-matches the candidate and the prior deployment/billing concern is resolved, but the packaged CLI can silently destroy the rollback audit while exiting successfully.
+All five verifier findings are repaired with direct regression coverage. The original local-only workflow, documented model exports, paid-unlock boundary, PWA behavior, and static deployment class are preserved.
 
-The release blocker is reproduced by passing different `--output` and `--audit` strings that resolve to the same file, such as `out.txt` and `path-alias/../out.txt`. `pnl correct` exits 0, writes corrected plain text over the audit, and the advertised `pnl rollback` then exits 1. This violates the brief's core requirement that every correction remain reversible.
+### Repairs
 
-Secondary findings:
+- `pnl correct` now refuses equivalent output/audit targets before it writes either artifact. It resolves `.` and `..`, non-existent leaves, and symlinked parent directories without creating a rejected parent. On Unix it also detects existing hard-link aliases by device/inode. The installed package was retested with `output` and `path-alias/../output`: exit `1`, structured JSON error, no output, no audit, and no intermediate alias directory.
+- Browser audits now publish UTF-8 byte offsets, matching the CLI and README contract. The shared Unicode fixture (`👋 socio bot…`) proves `start: 5` and `end: 14`; the browser download regression verifies the actual downloaded audit.
+- `--json` now renders Clap validation errors as JSON on stderr, including an invalid enum and missing required output. Normal `--help` and `--version` behavior remains human-readable and exits successfully.
+- Invalid persisted workspaces are validated at load. Malformed data is quarantined under `pnl:workspace:recovery:v1`, any recoverable raw transcript remains available, and the UI offers a local download or discard action. The exact `{"entries":[null],"raw":"recover me"}` case no longer produces a page error and manual Add term works immediately.
+- The public Rust API now has a compiled crate-level doctest plus copy-pasteable root/package README examples for import, correction, audit preservation, and export.
 
-- Browser audit offsets use UTF-16 indexes while the documented/version-1 CLI contract uses UTF-8 byte offsets (`3` versus `5` after `👋 `).
-- `--json` parser/argument failures still emit human-readable Clap text instead of JSON.
-- Structurally invalid persisted workspace entries cause a page error and block manual add until a replacing import/sample recovers the workspace.
-- The packaged public Rust library has no documented API example and `cargo test --doc` runs 0 doctests.
+## Exact regression coverage
 
-Full reproductions and all passing evidence are in [verification-4.md](verification-4.md).
+- Rust unit tests cover `.` / `..`, symlinked-parent, and hard-link output/audit collisions; rejected collisions leave no target files, and the `..` case leaves no created parent.
+- Rust parser tests cover invalid `--format` and missing required arguments in JSON mode.
+- `cli/fixtures/unicode-audit.json` is consumed by both the Rust suite and Vitest, so CLI/browser offsets use one fixture.
+- Playwright downloads the Unicode browser audit and asserts byte offsets; it also seeds malformed storage, confirms quarantine/recovery, then adds a term without a page error.
+- The public-library doctest is compiled by `cargo test --doc`.
 
-## What passed
+## Verification evidence
 
-- Clean detached candidate: `npm ci`, typecheck, strict lint/Clippy, `npm test`, and exact `npm run build` all passed; 7 Rust + 7 Vitest + 20 Playwright tests passed.
-- `cargo package` verified an 8-file, 10.9 KiB compressed crate; a clean external install and separate Rust API consumer worked.
-- Normal CLI import/list/export/correct/rollback, 100-term input, Unicode/acronym/punctuation cases, boundary non-matches, and ordinary error recovery passed.
-- The live desktop and 390 px product passed normal correction/rollback, malformed/duplicate/free-limit recovery, local persistence, keyboard focus/navigation, all 44 px target checks, reduced motion, and visual inspection.
-- Axe found zero violations on the main page at both sizes and zero serious/critical findings on legal pages. Normal workflows produced no console/page/request errors.
-- Normal browser work stayed same-origin. Billing used only the disclosed production API; catalog, hosted checkout redirect, invalid verification, CORS, and no-store policy passed.
-- Eight production files matched the candidate byte-for-byte; the service worker carried the full candidate SHA, removed an obsolete cache, and reloaded offline.
-- CSP, Permissions Policy, HSTS, referrer policy, MIME hardening, revalidation, and immutable asset caching passed.
-- Payloads: 12.5 KB JS, 15.4 KB CSS, zero fonts, 62.5 KB hero. Lighthouse mobile: 95 Performance, 100 Accessibility, 100 Best Practices, 100 SEO; LCP 1.20 s and CLS 0.
-
-## Reproduce
+### Local clean build
 
 ```sh
 npm ci
+npm test
 npm run typecheck
 npm run lint
-npm test
 npm run build
 cargo package --manifest-path cli/Cargo.toml
-npm run verify:live
 ```
 
-Install the extracted crate into a clean Cargo root, then run `pnl correct` with two path strings resolving to one destination and confirm it refuses the operation without changing either visible artifact. Do not publish the crate until that retest passes.
+- `npm ci`: 61 packages, 0 vulnerabilities.
+- `npm test`: 11 Rust unit tests, 1 doctest, 8 Vitest tests, and 24 Playwright tests across desktop Chromium and 390 × 844 Chromium passed.
+- `npm run typecheck`, strict `cargo fmt`/Clippy through `npm run lint`, and the exact production `npm run build` passed. The build produces `target/release/pnl` and `dist/site/`.
+- Production assets: JS 14.12 KB / 5.62 KB gzip; CSS 15.73 KB / 4.40 KB gzip; hero remains 62.51 KB. All are within budget.
 
-No product code was modified by this verification. No package was published and no real financial transaction was made.
+### Package and consumer
+
+- `cargo package --manifest-path cli/Cargo.toml --allow-dirty` verified a nine-file `proper-noun-lexicon 0.1.2` crate (the source fixture is included). No package was published.
+- The extracted package installed cleanly with `cargo install --path … --root … --locked`; `pnl --version` reported `0.1.2`.
+- A separate Rust consumer compiled against the extracted crate and asserted import, approved correction, exact raw preservation, Unicode offsets `5..14`, and Google Speech export.
+- The installed CLI imported, corrected, and rolled back the Unicode fixture byte-for-byte. It emitted a JSON error and exit `2` for invalid `--format`; the installed `..` alias collision emitted a JSON error and no target/intermediate artifact.
+
+### Production deployment and live checks
+
+- Deployed `dist/site/` with `/opt/fleet/lib/deploy-static.sh proper-noun-lexicon dist/site`; Azure deployment ID: `da1f8409-8233-4cd5-ad35-a2979540d027`. The custom domain reached HTTPS 200.
+- `npm run verify:live` passed: catalog price USD 29.00, hosted checkout HTTP 303, and the documented invalid-license verifier response.
+- `/opt/fleet/lib/verify-url.sh` passed: 200, 863 ms browser load, title/lang, one `h1`, `main`, image alt text, named controls, and no console errors.
+- Local and live SHA-256 values matched for eight files: index, JS, CSS, service worker, hero, privacy, terms, and manifest. The worker was stamped with the deployed Git release ID.
+- Live desktop (1440 × 1000) and mobile (390 × 844) review flows corrected the Unicode fixture without console/page errors, had no horizontal overflow, and Axe reported zero violations. Normal-flow request capture saw only `https://proper-noun-lexicon.sociobot.in`; vocabulary and transcript never left the origin.
+- Keyboard smoke test passed live: first Tab focused the designed Skip link (`rgb(103, 245, 210) solid 3px`), Ctrl+Enter corrected the sample, and ArrowRight selected Google Speech.
+- A fresh service-worker-controlled 390 px context had only the deployed cache, reloaded offline, and displayed “Offline — local tools ready” with no errors.
+- Live responses include HSTS, `nosniff`, strict referrer policy, restrictive CSP, Permissions Policy, HTML/SW revalidation, and immutable hashed asset caching.
+- Lighthouse 12.8.2 mobile: **99 Performance, 100 Accessibility, 100 Best Practices, 100 SEO**. FCP 1.5 s, LCP 1.7 s, TBT 0 ms, CLS 0, total transfer 77 KiB.
+
+## Known limits / next steps
+
+- No real $29 charge, refund, or issued production license was created; this avoids an external financial transaction. The hosted checkout boundary, invalid verifier, and deterministic browser license states are covered.
+- The brief’s 25-point recall improvement needs a customer pilot with a real 100-name vocabulary and configured speech system. The product deliberately does not collect that corpus.
+- To publish the CLI, the factory should run `cargo package --manifest-path cli/Cargo.toml` from a clean checkout and publish the resulting `0.1.2` crate; do not publish from this worker.
