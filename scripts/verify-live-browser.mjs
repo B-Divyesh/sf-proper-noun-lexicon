@@ -18,6 +18,10 @@ async function checkViewport(name, viewport) {
   assert.equal(await page.locator('h1').count(), 1, `${name}: one h1`);
   assert.equal(await page.locator('main').count(), 1, `${name}: one main`);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, `${name}: no horizontal overflow`);
+  assert.equal(await page.getByRole('link', { name: 'View CLI install steps' }).getAttribute('href'), '#cli', `${name}: CLI action names its destination`);
+  assert.match(await page.locator('#cli').innerText(), /cargo install --path cli/, `${name}: CLI destination contains install steps`);
+  const landingText = await page.locator('main').innerText();
+  assert.doesNotMatch(landingText, /Install the CLI|phrase-bias interfaces|My lexicon|Your lexicon/, `${name}: reviewed jargon and mixed terminology are absent`);
   await page.keyboard.press('Tab');
   assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), 'Skip to main content', `${name}: first Tab reaches skip link`);
 
@@ -96,6 +100,21 @@ for (const selector of [
   'meta[name="twitter:title"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]',
 ]) assert.equal(await missing.locator(selector).count(), 1, `404 metadata: ${selector}`);
 await missing.close();
+
+const routes = [
+  ['/privacy/', 'Privacy — Proper Noun Lexicon'],
+  ['/terms/', 'Terms — Proper Noun Lexicon'],
+];
+const routePage = await browser.newPage();
+for (const [path, title] of routes) {
+  await routePage.goto(new URL(path, base).href);
+  assert.equal(await routePage.title(), title, `${path}: route title`);
+  for (const href of await routePage.locator('a[href^="/"]').evaluateAll(links => [...new Set(links.map(link => link.getAttribute('href')))])) {
+    const response = await routePage.request.get(new URL(href, base).href);
+    assert.ok(response.status() < 400, `${path} → ${href}: working internal link`);
+  }
+}
+await routePage.close();
 
 await browser.close();
 console.log(JSON.stringify({ site: base, viewports: ['1440x1000', '390x844'], axe: '0 serious/critical', offline: true, reducedMotion: true, privacy: 'same-origin demo requests only' }, null, 2));
