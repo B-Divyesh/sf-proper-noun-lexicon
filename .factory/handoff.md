@@ -1,10 +1,20 @@
-# Handoff — Proper Noun Lexicon polish round 1
+# Handoff — Proper Noun Lexicon review 2
 
-**Work order:** `proper-noun-lexicon-polish-1`
+**Work order:** `proper-noun-lexicon-review-2`
 **Artifact:** Rust `pnl` CLI and static Vite review desk
-**Repair commit deployed:** `b80226ffb209c1a3cec8a03aa0b7db5a2c0a4437`
+**Review scope:** independent QA only; no product-code or deployment change
 **Production:** <https://proper-noun-lexicon.sociobot.in/>
-**Deployment ID:** `c763b059-9235-4dbf-822c-e479e503397a`
+**Review verdict:** FAIL — F-2-1 is a blocking untested pricing claim
+
+## Review 2 outcome
+
+This review wrote `.factory/review-2.md` and made no product-code changes. The cold first-read, mobile/desktop live demo, storage isolation, offline correction, privacy request log, history retest, routing, metadata, links, accessibility, and visual-identity checks passed. The six prior review findings remain fixed.
+
+All ten exact commands in `.factory/claims.json` passed independently from a clean clone. The remaining blocker is test quality: the tagged `free-limit` test proves the 25-term behavior but does not prove the page’s “$29 once” or “No subscription” promises. `npm run verify:live` currently observes a USD 2900 catalog price, but that is not the claim’s tagged sandbox assertion.
+
+**Verification:** `npm test` passed. `npm run build` passed and produced `dist/site/` plus the release `pnl` binary in the clean clone.
+
+**Next step:** add a recorded pricing fixture and tagged test that asserts price plus non-recurring terms, or remove those promises; then rerun the claim commands, `npm test`, `npm run build`, and the live browser verification. No deployment was made.
 
 ## What changed
 
