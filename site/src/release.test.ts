@@ -38,6 +38,7 @@ describe('release delivery contract', () => {
       responseOverrides: Record<string, { rewrite: string; statusCode: number }>;
     };
     expect(config.routes).toContainEqual(expect.objectContaining({ route: '/demo', rewrite: '/index.html' }));
+    expect(config.routes.filter(route => route.route.replace(/\/$/, '') === '/demo')).toHaveLength(1);
     expect(config.responseOverrides['404']).toEqual({ rewrite: '/404.html', statusCode: 404 });
     const html = readFileSync(resolve(site, 'index.html'), 'utf8');
     expect(html).toContain('rel="canonical"');
