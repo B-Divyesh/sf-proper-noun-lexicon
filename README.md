@@ -51,14 +51,32 @@ pnl correct --lexicon team.pnl.json --input raw.txt --output corrected.txt --aud
 pnl rollback review.pnl-audit.json --output restored.txt
 ```
 
-Every command accepts `--json` for script-friendly status output. Errors go to stderr and return a non-zero exit code. No command prompts interactively.
+Every command accepts `--json` for script-friendly status output, including invalid command-line arguments. Errors go to stderr and return a non-zero exit code. No command prompts interactively.
+
+## Library API
+
+The packaged crate also exposes the same local, typed workflow for Rust tools:
+
+```rust
+use proper_noun_lexicon::{correct, export, import_csv, ExportFormat};
+
+fn main() -> Result<(), proper_noun_lexicon::PnlError> {
+    let lexicon = import_csv("term,aliases\nSociobot,socio bot\n", "team")?;
+    let audit = correct("Ask socio bot.", &lexicon)?;
+    assert_eq!(audit.corrected, "Ask Sociobot.");
+    assert_eq!(audit.raw, "Ask socio bot."); // Preserve this audit for rollback.
+    let phrase_set = export(&lexicon, ExportFormat::GoogleSpeech)?;
+    assert!(phrase_set.contains("Sociobot"));
+    Ok(())
+}
+```
 
 ## CSV and JSON contracts
 
 - CSV header: `term,aliases`; aliases are `|`-separated. Quoted fields and escaped quotes are supported.
 - Lexicon JSON: versioned object with `version`, `name`, and `entries`; each entry has a canonical `term` and unique `aliases`.
 - Corrections are case-insensitive, match phrase boundaries, and prefer the longest alias. Terms are never guessed.
-- Audit JSON: versioned object with `raw`, `corrected`, `created_at`, and ordered `changes` containing byte offsets, original text, replacement, and canonical term.
+- Audit JSON: versioned object with `raw`, `corrected`, `created_at`, and ordered `changes` containing UTF-8 byte offsets, original text, replacement, and canonical term. The CLI and browser emit the same offsets.
 
 ## Develop and verify
 

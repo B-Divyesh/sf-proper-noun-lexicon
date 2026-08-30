@@ -2,6 +2,20 @@
 //!
 //! The library applies only aliases that a user explicitly approved and returns
 //! an audit containing the exact raw input, so every operation can be reversed.
+//!
+//! # Example
+//!
+//! ```
+//! use proper_noun_lexicon::{correct, export, import_csv, ExportFormat};
+//!
+//! let lexicon = import_csv("term,aliases\nSociobot,socio bot\n", "team").unwrap();
+//! let audit = correct("Ask socio bot.", &lexicon).unwrap();
+//! assert_eq!(audit.corrected, "Ask Sociobot.");
+//! assert_eq!(audit.raw, "Ask socio bot."); // Keep this audit for rollback.
+//!
+//! let phrase_set = export(&lexicon, ExportFormat::GoogleSpeech).unwrap();
+//! assert!(phrase_set.contains("Sociobot"));
+//! ```
 
 use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
@@ -329,5 +343,28 @@ mod tests {
         assert_eq!(payload["phrases"][0]["boost"], 15.0);
         assert!(payload.get("phraseSet").is_none());
         assert!(payload.get("phraseSets").is_none());
+    }
+
+    #[derive(Deserialize)]
+    struct UnicodeAuditFixture {
+        raw: String,
+        entries: Vec<Entry>,
+        corrected: String,
+        changes: Vec<Change>,
+    }
+
+    #[test]
+    fn unicode_audit_fixture_uses_utf8_byte_offsets() {
+        let fixture: UnicodeAuditFixture =
+            serde_json::from_str(include_str!("../fixtures/unicode-audit.json")).unwrap();
+        let lexicon = Lexicon {
+            version: FORMAT_VERSION,
+            name: "unicode fixture".into(),
+            entries: fixture.entries,
+        };
+
+        let audit = correct(&fixture.raw, &lexicon).unwrap();
+        assert_eq!(audit.corrected, fixture.corrected);
+        assert_eq!(audit.changes, fixture.changes);
     }
 }

@@ -1,0 +1,16 @@
+{
+  "raw": "👋 socio bot meets sociobotics.",
+  "entries": [
+    { "term": "Sociobot", "aliases": ["socio bot"] }
+  ],
+  "corrected": "👋 Sociobot meets sociobotics.",
+  "changes": [
+    {
+      "start": 5,
+      "end": 14,
+      "original": "socio bot",
+      "replacement": "Sociobot",
+      "term": "Sociobot"
+    }
+  ]
+}

@@ -1,8 +1,9 @@
 import './styles.css';
-import { correct, exportPayload, parseCsv, toCsv, type Audit, type Entry } from './core';
+import { byteOffsetToStringIndex, correct, exportPayload, parseCsv, toCsv, validateEntries, type Audit, type Entry } from './core';
 
 const SLUG = 'proper-noun-lexicon';
 const STORAGE_KEY = 'pnl:workspace:v1';
+const RECOVERY_KEY = 'pnl:workspace:recovery:v1';
 const LICENSE_KEY = `sb_license:${SLUG}`;
 const VERDICT_KEY = `sb_license_verdict:${SLUG}`;
 const VERIFY_URL = `https://api.sociobot.in/api/v1/products/${SLUG}/verify`;
@@ -40,13 +41,31 @@ function save(): void {
 }
 
 function load(): void {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) return;
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    entries = Array.isArray(stored.entries) ? stored.entries : [];
-    rawInput.value = typeof stored.raw === 'string' ? stored.raw : '';
+    const stored: unknown = JSON.parse(saved);
+    if (!stored || typeof stored !== 'object' || !Array.isArray((stored as { entries?: unknown }).entries) || typeof (stored as { raw?: unknown }).raw !== 'string') {
+      throw new Error('Saved browser data has an invalid shape.');
+    }
+    const workspace = stored as { entries: Entry[]; raw: string };
+    validateEntries(workspace.entries);
+    entries = workspace.entries;
+    rawInput.value = workspace.raw;
   } catch {
     entries = [];
-    termError.textContent = 'Saved browser data could not be read. Start a new lexicon or import your CSV again.';
+    try {
+      const stored = JSON.parse(saved) as { raw?: unknown };
+      rawInput.value = typeof stored?.raw === 'string' ? stored.raw : '';
+    } catch { rawInput.value = ''; }
+    try {
+      localStorage.setItem(RECOVERY_KEY, saved);
+      localStorage.removeItem(STORAGE_KEY);
+      $('#saved-data-recovery').hidden = false;
+      termError.textContent = 'Saved vocabulary was invalid and was set aside. Your transcript was kept when possible.';
+    } catch {
+      termError.textContent = 'Saved browser data could not be read. Start a new lexicon or import your CSV again.';
+    }
   }
 }
 
@@ -135,8 +154,11 @@ function applyCorrections(): void {
   correctedOutput.replaceChildren();
   let cursor = 0;
   for (const change of audit.changes) {
-    correctedOutput.append(document.createTextNode(audit.raw.slice(cursor, change.start)));
-    const mark = document.createElement('mark'); mark.textContent = change.replacement; mark.title = `Changed from “${change.original}”`; correctedOutput.append(mark); cursor = change.end;
+    const start = byteOffsetToStringIndex(audit.raw, change.start);
+    const end = byteOffsetToStringIndex(audit.raw, change.end);
+    correctedOutput.append(document.createTextNode(audit.raw.slice(cursor, start)));
+    const mark = document.createElement('mark'); mark.textContent = change.replacement; mark.title = `Changed from “${change.original}”`; correctedOutput.append(mark);
+    cursor = end;
   }
   correctedOutput.append(document.createTextNode(audit.raw.slice(cursor)));
   changeList.replaceChildren();
@@ -164,6 +186,18 @@ $('#copy-corrected').addEventListener('click', async () => {
   catch { download('corrected.txt', audit.corrected, 'text/plain'); announce('Clipboard unavailable; downloaded corrected text.'); }
 });
 $('#download-audit').addEventListener('click', () => { if (audit) download('review.pnl-audit.json', JSON.stringify(audit, null, 2) + '\n', 'application/json'); });
+
+$('#download-saved-data').addEventListener('click', () => {
+  const recovery = localStorage.getItem(RECOVERY_KEY);
+  if (!recovery) return announce('There is no saved recovery data to download.');
+  download('proper-noun-lexicon-recovery.json', recovery + '\n', 'application/json');
+});
+$('#discard-saved-data').addEventListener('click', () => {
+  localStorage.removeItem(RECOVERY_KEY);
+  $('#saved-data-recovery').hidden = true;
+  termError.textContent = '';
+  announce('Saved recovery copy discarded.');
+});
 
 function renderExport(): void {
   $('#export-preview').textContent = entries.length ? exportPayload(entries, format) : 'Add vocabulary to preview a model-ready export.';

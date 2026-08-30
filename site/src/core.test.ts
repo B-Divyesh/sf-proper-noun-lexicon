@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { correct, exportPayload, parseCsv, toCsv } from './core';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { byteOffsetToStringIndex, correct, exportPayload, parseCsv, toCsv } from './core';
+
+const unicodeAuditFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, '../../cli/fixtures/unicode-audit.json'), 'utf8')) as {
+  raw: string; entries: { term: string; aliases: string[] }[]; corrected: string;
+  changes: { start: number; end: number; original: string; replacement: string; term: string }[];
+};
 
 describe('browser lexicon core', () => {
   it('imports quoted CSV and keeps aliases', () => {
@@ -31,5 +38,13 @@ describe('browser lexicon core', () => {
     expect(payload.phrases).toEqual([{ value: 'Sociobot', boost: 15 }]);
     expect(payload).not.toHaveProperty('phraseSet');
     expect(payload).not.toHaveProperty('phraseSets');
+  });
+
+  it('shares the Unicode fixture byte offsets with the CLI audit contract', () => {
+    const audit = correct(unicodeAuditFixture.raw, unicodeAuditFixture.entries);
+    expect(audit.corrected).toBe(unicodeAuditFixture.corrected);
+    expect(audit.changes).toEqual(unicodeAuditFixture.changes);
+    expect(byteOffsetToStringIndex(audit.raw, audit.changes[0].start)).toBe(3);
+    expect(byteOffsetToStringIndex(audit.raw, audit.changes[0].end)).toBe(12);
   });
 });

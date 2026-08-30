@@ -2,6 +2,27 @@ export type Entry = { term: string; aliases: string[] };
 export type Change = { start: number; end: number; original: string; replacement: string; term: string };
 export type Audit = { version: 1; created_at: number; raw: string; corrected: string; changes: Change[] };
 
+const utf8 = new TextEncoder();
+
+/** Convert a JavaScript string position to the documented UTF-8 byte offset. */
+export function stringIndexToByteOffset(value: string, index: number): number {
+  return utf8.encode(value.slice(0, index)).byteLength;
+}
+
+/** Convert a documented UTF-8 byte offset back to a JavaScript string position. */
+export function byteOffsetToStringIndex(value: string, offset: number): number {
+  if (!Number.isInteger(offset) || offset < 0) throw new Error('The audit offset is invalid.');
+  let bytes = 0;
+  let index = 0;
+  for (const character of value) {
+    if (bytes === offset) return index;
+    bytes += utf8.encode(character).byteLength;
+    index += character.length;
+  }
+  if (bytes === offset) return index;
+  throw new Error('The audit offset does not end at a UTF-8 character boundary.');
+}
+
 export function parseCsv(input: string): Entry[] {
   const rows: string[][] = [];
   let row: string[] = [], field = '', quoted = false;
@@ -35,12 +56,16 @@ export function parseCsv(input: string): Entry[] {
 export function validateEntries(entries: Entry[]): void {
   const terms = new Set<string>(), aliases = new Map<string, string>();
   for (const entry of entries) {
+    if (!entry || typeof entry.term !== 'string' || !Array.isArray(entry.aliases) || entry.aliases.some(alias => typeof alias !== 'string')) {
+      throw new Error('Saved vocabulary has an invalid entry.');
+    }
     const termKey = entry.term.trim().toLocaleLowerCase();
     if (!termKey) throw new Error('An approved spelling is empty.');
     if (terms.has(termKey)) throw new Error(`The term “${entry.term}” is already present.`);
     terms.add(termKey);
     for (const alias of entry.aliases) {
       const key = alias.trim().toLocaleLowerCase();
+      if (!key) throw new Error(`The aliases for “${entry.term}” include an empty value.`);
       const owner = aliases.get(key);
       if (owner && owner !== entry.term) throw new Error(`The alias “${alias}” already maps to “${owner}”.`);
       aliases.set(key, entry.term);
@@ -55,7 +80,8 @@ export function correct(raw: string, entries: Entry[]): Audit {
   const aliases = entries.flatMap(entry => entry.aliases.map(alias => ({ alias, term: entry.term })))
     .sort((a, b) => b.alias.length - a.alias.length);
   const lower = raw.toLocaleLowerCase();
-  const occupied: Array<[number, number]> = [], changes: Change[] = [];
+  const occupied: Array<[number, number]> = [];
+  const matches: Array<{ start: number; end: number; original: string; replacement: string; term: string }> = [];
   for (const { alias, term } of aliases) {
     const needle = alias.toLocaleLowerCase();
     let from = 0, start: number;
@@ -63,14 +89,24 @@ export function correct(raw: string, entries: Entry[]): Audit {
       const end = start + needle.length;
       const boundary = !isWord(raw[start - 1]) && !isWord(raw[end]);
       const overlaps = occupied.some(([a, b]) => start < b && end > a);
-      if (boundary && !overlaps) { occupied.push([start, end]); changes.push({ start, end, original: raw.slice(start, end), replacement: term, term }); }
+      if (boundary && !overlaps) {
+        occupied.push([start, end]);
+        matches.push({ start, end, original: raw.slice(start, end), replacement: term, term });
+      }
       from = Math.max(end, start + 1);
     }
   }
-  changes.sort((a, b) => a.start - b.start);
+  matches.sort((a, b) => a.start - b.start);
   let cursor = 0, corrected = '';
-  for (const change of changes) { corrected += raw.slice(cursor, change.start) + change.replacement; cursor = change.end; }
+  for (const change of matches) { corrected += raw.slice(cursor, change.start) + change.replacement; cursor = change.end; }
   corrected += raw.slice(cursor);
+  const changes = matches.map(change => ({
+    start: stringIndexToByteOffset(raw, change.start),
+    end: stringIndexToByteOffset(raw, change.end),
+    original: change.original,
+    replacement: change.replacement,
+    term: change.term,
+  }));
   return { version: 1, created_at: Math.floor(Date.now() / 1000), raw, corrected, changes };
 }
 

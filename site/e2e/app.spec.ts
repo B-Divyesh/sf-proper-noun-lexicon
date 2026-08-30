@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { Readable } from 'node:stream';
 import AxeBuilder from '@axe-core/playwright';
 
 test('review flow corrects and restores only approved terms', async ({ page }) => {
@@ -17,6 +18,44 @@ test('review flow corrects and restores only approved terms', async ({ page }) =
   await expect(page.getByText('1 approved change')).toBeVisible();
   await page.getByRole('button', { name: 'Restore raw' }).click();
   await expect(page.getByLabel('Raw transcript')).toHaveValue('Ask socio bot about sociobotics.');
+  expect(runtimeErrors).toEqual([]);
+});
+
+test('browser audit downloads documented UTF-8 byte offsets for Unicode text', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Load sample vocabulary' }).click();
+  await page.getByLabel('Raw transcript').fill('👋 socio bot meets sociobotics.');
+  await page.getByRole('button', { name: /Apply approved corrections/ }).click();
+  await expect(page.getByLabel('Corrected transcript')).toContainText('👋 Sociobot meets sociobotics.');
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download audit' }).click();
+  const stream = await (await downloadPromise).createReadStream() as Readable;
+  let contents = '';
+  for await (const chunk of stream) contents += chunk;
+  const audit = JSON.parse(contents) as { changes: Array<{ start: number; end: number }> };
+  expect(audit.changes[0]).toMatchObject({ start: 5, end: 14 });
+});
+
+test('invalid persisted workspace data is quarantined without a page error', async ({ page }) => {
+  const runtimeErrors: string[] = [];
+  page.on('pageerror', error => runtimeErrors.push(error.message));
+  const invalidWorkspace = JSON.stringify({ entries: [null], raw: 'recover me' });
+  await page.addInitScript(value => localStorage.setItem('pnl:workspace:v1', value), invalidWorkspace);
+  await page.goto('/');
+
+  await expect(page.getByRole('alert')).toContainText('Saved vocabulary was invalid and was set aside');
+  await expect(page.getByLabel('Raw transcript')).toHaveValue('recover me');
+  await expect(page.locator('#saved-data-recovery')).toBeVisible();
+  expect(await page.evaluate(() => ({
+    workspace: localStorage.getItem('pnl:workspace:v1'),
+    recovery: localStorage.getItem('pnl:workspace:recovery:v1'),
+  }))).toEqual({ workspace: null, recovery: invalidWorkspace });
+
+  await page.getByLabel('Approved spelling').fill('Sociobot');
+  await page.getByLabel('Spoken aliases').fill('socio bot');
+  await page.getByRole('button', { name: 'Add term' }).click();
+  await expect(page.locator('#entry-count')).toHaveText('1 term');
   expect(runtimeErrors).toEqual([]);
 });
 

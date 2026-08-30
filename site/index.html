@@ -74,6 +74,10 @@
                 <button class="button primary compact" type="submit">Add term</button>
               </form>
               <p class="form-error" id="term-error" role="alert"></p>
+              <aside class="saved-data-recovery" id="saved-data-recovery" aria-label="Saved data recovery" hidden>
+                <p>Saved vocabulary was set aside. Download it before you start a new lexicon.</p>
+                <div><button class="text-button" id="download-saved-data" type="button">Download saved data</button><button class="text-button" id="discard-saved-data" type="button">Discard recovery copy</button></div>
+              </aside>
               <div id="term-list" class="term-list"></div>
               <div id="lexicon-empty" class="empty-state">
                 <span class="empty-glyph" aria-hidden="true">Aa → Å</span>

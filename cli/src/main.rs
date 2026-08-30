@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use proper_noun_lexicon::{Audit, ExportFormat, Lexicon, export, import_csv};
 use serde_json::json;
+use std::ffi::OsString;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -94,6 +95,115 @@ fn prepare_destination(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// Resolve a parent path without creating it.
+///
+/// This keeps rejected `output`/`audit` aliases from leaving even an empty
+/// parent directory behind. Existing symlinked components are resolved as the
+/// operating system resolves them; missing components stay lexical so a later
+/// `..` still identifies the destination `create_dir_all` would use.
+fn resolve_parent_without_writing(path: &Path) -> Result<PathBuf, String> {
+    use std::path::Component;
+
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let absolute_parent = if parent.is_absolute() {
+        parent.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .map_err(|e| format!("could not resolve the current directory: {e}"))?
+            .join(parent)
+    };
+    let mut resolved = PathBuf::new();
+    for component in absolute_parent.components() {
+        match component {
+            Component::Prefix(prefix) => resolved.push(prefix.as_os_str()),
+            Component::RootDir => resolved.push(component.as_os_str()),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                let _ = resolved.pop();
+            }
+            Component::Normal(name) => {
+                let candidate = resolved.join(name);
+                resolved = match fs::symlink_metadata(&candidate) {
+                    Ok(metadata) if metadata.file_type().is_symlink() => {
+                        fs::canonicalize(&candidate).map_err(|e| {
+                            format!("could not resolve {}: {e}", candidate.display())
+                        })?
+                    }
+                    Ok(_) => candidate,
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => candidate,
+                    Err(error) => {
+                        return Err(format!(
+                            "could not inspect {}: {error}",
+                            candidate.display()
+                        ));
+                    }
+                };
+            }
+        }
+    }
+    Ok(resolved)
+}
+
+/// Return the destination that `rename` will replace after resolving its
+/// parent. This deliberately does not canonicalize the leaf: it may not exist
+/// yet, while a symlinked parent still needs to identify its real directory.
+fn canonical_destination(path: &Path) -> Result<PathBuf, String> {
+    let name = path
+        .file_name()
+        .ok_or_else(|| format!("{} does not name a file", path.display()))?;
+    let resolved_parent = resolve_parent_without_writing(path)?;
+    Ok(resolved_parent.join(name))
+}
+
+#[cfg(unix)]
+fn same_existing_file(left: &Path, right: &Path) -> Result<bool, String> {
+    use std::os::unix::fs::MetadataExt;
+
+    let metadata = |path: &Path| match fs::metadata(path) {
+        Ok(value) => Ok(Some(value)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(format!("could not inspect {}: {error}", path.display())),
+    };
+    match (metadata(left)?, metadata(right)?) {
+        (Some(left), Some(right)) => Ok(left.dev() == right.dev() && left.ino() == right.ino()),
+        _ => Ok(false),
+    }
+}
+
+#[cfg(not(unix))]
+fn same_existing_file(_left: &Path, _right: &Path) -> Result<bool, String> {
+    Ok(false)
+}
+
+/// Refuse path aliases before either correction artifact is written.
+///
+/// Existing hard links have distinct path spellings, so their file identity is
+/// checked separately. The first check is deliberately before parent creation;
+/// the second closes the gap after valid destinations prepare their parents.
+fn ensure_distinct_destinations(output: &Path, audit: &Path) -> Result<(), String> {
+    if output == audit {
+        return Err("correction output and audit must be different files".into());
+    }
+    let collides = || -> Result<bool, String> {
+        Ok(
+            canonical_destination(output)? == canonical_destination(audit)?
+                || same_existing_file(output, audit)?,
+        )
+    };
+    if collides()? {
+        return Err("correction output and audit must resolve to different files".into());
+    }
+    prepare_destination(output)?;
+    prepare_destination(audit)?;
+    if collides()? {
+        return Err("correction output and audit must resolve to different files".into());
+    }
+    Ok(())
+}
+
 fn write_temporary(path: &Path, value: &str) -> Result<PathBuf, String> {
     let parent = path
         .parent()
@@ -149,12 +259,8 @@ fn write_correction_pair(
     audit: &Path,
     audit_json: &str,
 ) -> Result<(), String> {
-    if output == audit {
-        return Err("correction output and audit must be different files".into());
-    }
     // Validate both destinations before touching either visible artifact.
-    prepare_destination(output)?;
-    prepare_destination(audit)?;
+    ensure_distinct_destinations(output, audit)?;
     let output_temp = write_temporary(output, corrected)?;
     let audit_temp = match write_temporary(audit, audit_json) {
         Ok(path) => path,
@@ -251,8 +357,35 @@ fn run(cli: Cli) -> Result<serde_json::Value, String> {
     }
 }
 
+fn parse_cli_args(
+    arguments: impl IntoIterator<Item = OsString>,
+) -> Result<Cli, (bool, clap::Error)> {
+    let arguments: Vec<OsString> = arguments.into_iter().collect();
+    let json_output = arguments.iter().any(|argument| argument == "--json");
+    Cli::try_parse_from(arguments).map_err(|error| (json_output, error))
+}
+
+fn json_error(message: impl AsRef<str>) -> String {
+    json!({"ok": false, "error": message.as_ref().trim()}).to_string()
+}
+
 fn main() {
-    let cli = Cli::parse();
+    let cli = match parse_cli_args(std::env::args_os()) {
+        Ok(cli) => cli,
+        Err((_, error))
+            if matches!(
+                error.kind(),
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
+            ) =>
+        {
+            error.exit()
+        }
+        Err((true, error)) => {
+            eprintln!("{}", json_error(error.to_string()));
+            std::process::exit(2);
+        }
+        Err((false, error)) => error.exit(),
+    };
     let json_output = cli.json;
     match run(cli) {
         Ok(result) if json_output => {
@@ -268,7 +401,7 @@ fn main() {
         }
         Err(message) => {
             if json_output {
-                eprintln!("{}", json!({"ok": false, "error": message}));
+                eprintln!("{}", json_error(message));
             } else {
                 eprintln!("Error: {message}");
             }
@@ -360,11 +493,138 @@ mod tests {
         })
         .unwrap_err();
 
-        assert!(error.contains("could not create"));
+        assert!(error.contains("could not"));
         assert!(
             !corrected.exists(),
             "a correction without a rollback audit must not be emitted"
         );
         assert!(!audit.exists());
+    }
+
+    fn correction_with_paths(output: PathBuf, audit: PathBuf) -> Result<serde_json::Value, String> {
+        let dir = output.parent().unwrap();
+        let csv = dir.join("names.csv");
+        let lexicon = dir.join("names.json");
+        let raw = dir.join("raw.txt");
+        fs::write(&csv, "term,aliases\nSociobot,socio bot\n").unwrap();
+        fs::write(&raw, "Hello socio bot.").unwrap();
+        run(Cli {
+            json: true,
+            command: Command::Import {
+                input: csv,
+                output: lexicon.clone(),
+                name: None,
+            },
+        })?;
+        run(Cli {
+            json: true,
+            command: Command::Correct {
+                lexicon,
+                input: raw,
+                output,
+                audit,
+            },
+        })
+    }
+
+    #[test]
+    fn correction_refuses_dot_and_parent_path_aliases_before_writing() {
+        let dir = tempdir().unwrap();
+        let missing_parent = dir.path().join("path-alias");
+        for (output, audit) in [
+            (
+                dir.path().join("dot.txt"),
+                dir.path().join(".").join("dot.txt"),
+            ),
+            (
+                dir.path().join("parent.txt"),
+                dir.path().join("path-alias").join("..").join("parent.txt"),
+            ),
+        ] {
+            let error = correction_with_paths(output.clone(), audit.clone()).unwrap_err();
+            assert!(error.contains("different files"));
+            assert!(!output.exists());
+            assert!(!audit.exists());
+        }
+        assert!(
+            !missing_parent.exists(),
+            "a rejected alias must not create its parent"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn correction_refuses_symlinked_parent_and_hard_link_aliases_before_writing() {
+        use std::os::unix::fs::symlink;
+
+        let dir = tempdir().unwrap();
+        let actual = dir.path().join("actual");
+        let linked = dir.path().join("linked");
+        fs::create_dir(&actual).unwrap();
+        symlink(&actual, &linked).unwrap();
+        let output = actual.join("symlinked.txt");
+        let audit = linked.join("symlinked.txt");
+        let error = correction_with_paths(output.clone(), audit.clone()).unwrap_err();
+        assert!(error.contains("resolve to different files"));
+        assert!(!output.exists());
+        assert!(!audit.exists());
+
+        let output = dir.path().join("hard-output.txt");
+        let audit = dir.path().join("hard-audit.txt");
+        fs::write(&output, "keep this file unchanged").unwrap();
+        fs::hard_link(&output, &audit).unwrap();
+        let error = correction_with_paths(output.clone(), audit.clone()).unwrap_err();
+        assert!(error.contains("resolve to different files"));
+        assert_eq!(
+            fs::read_to_string(&output).unwrap(),
+            "keep this file unchanged"
+        );
+        assert_eq!(
+            fs::read_to_string(&audit).unwrap(),
+            "keep this file unchanged"
+        );
+    }
+
+    #[test]
+    fn json_mode_renders_parser_errors_as_json() {
+        for (arguments, expected) in [
+            (
+                vec![
+                    "pnl",
+                    "--json",
+                    "export",
+                    "--lexicon",
+                    "names.pnl.json",
+                    "--format",
+                    "invented",
+                    "--output",
+                    "out.json",
+                ],
+                "invalid value",
+            ),
+            (
+                vec![
+                    "pnl",
+                    "--json",
+                    "export",
+                    "--lexicon",
+                    "names.pnl.json",
+                    "--format",
+                    "whisper",
+                ],
+                "required arguments",
+            ),
+        ] {
+            let arguments = arguments.into_iter().map(OsString::from);
+            let (json_requested, error) = match parse_cli_args(arguments) {
+                Ok(_) => panic!("invalid command line parsed successfully"),
+                Err(error) => error,
+            };
+            assert!(json_requested);
+            let payload: serde_json::Value =
+                serde_json::from_str(&json_error(error.to_string())).unwrap();
+            assert_eq!(payload["ok"], false);
+            assert!(payload["error"].as_str().unwrap().contains(expected));
+        }
     }
 }
