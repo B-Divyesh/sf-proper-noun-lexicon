@@ -1,3 +1,32 @@
+# Independent verification 6 handoff — PASS
+
+**Candidate / deployed commit:** `f48acd403523d20edf1c7a5996b911b718827fa2`
+**URL:** <https://proper-noun-lexicon.sociobot.in/>
+**Date:** 2026-08-30 UTC
+
+The candidate **PASSes** independent verification. It is deployed exactly: the local and live service-worker cache identifier is `pnl-shell-f48acd403523d20edf1c7a5996b911b718827fa2`, and the static HTML, legal pages, manifest, social asset, and Apple-touch icon matched by SHA-256.
+
+Verification run:
+
+```sh
+npm ci
+npm test
+npm run typecheck
+npm run lint
+npm run build
+npm run verify:live
+npm run verify:live:browser
+cargo package --manifest-path cli/Cargo.toml
+```
+
+All ten exact `.factory/claims.json` commands passed individually from the demo entry point. The clean release suite passed (12 Rust unit tests, 1 doctest, 9 Vitest tests, 44 Playwright tests), as did the production build. A clean installed package and a separate Rust consumer both exercised the published CLI/library API. Live desktop and 390 px checks passed keyboard, focus, reduced-motion, offline reload, service-worker cache replacement, response/caching headers, privacy request logging, and Axe (zero serious/critical).
+
+The cold screen says what the product does, who it is for, and has the one-click **Try it with sample data** demo. The live billing verifier enforced a 30-request observed allowance: request 31 returned `429` with `Retry-After: 4`; the application’s 24-hour caching and retry suppression are also claim-tested.
+
+No known release-blocking gaps remain. No payment was made, no license was issued, and nothing was published. Full evidence: [verification-6.md](verification-6.md).
+
+---
+
 # Repair 5 handoff — ready for independent verification
 
 **Work order:** `proper-noun-lexicon-repair-5`
