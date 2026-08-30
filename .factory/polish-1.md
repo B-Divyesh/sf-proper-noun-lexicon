@@ -59,7 +59,7 @@ Clean clone: `/tmp/pnl-polish-clean.uerxEu`, commit `b80226ffb209c1a3cec8a03aa0b
 
 ## Deployment
 
-`/opt/fleet/lib/deploy-static.sh proper-noun-lexicon dist/site` completed successfully. Azure deployment ID: `06a197b3-2ba1-4355-a921-0c2ca71137ea`. Both `npm run verify:live` and `npm run verify:live:browser` passed afterward.
+`/opt/fleet/lib/deploy-static.sh proper-noun-lexicon dist/site` completed successfully. Final Azure deployment ID: `c763b059-9235-4dbf-822c-e479e503397a`. The live service worker reports `pnl-shell-b80226ffb209c1a3cec8a03aa0b7db5a2c0a4437`, matching the repair source exactly. Both `npm run verify:live` and `npm run verify:live:browser` passed immediately after the first deployment; the final browser check passed again after the identity-corrected deployment.
 
 **Unresolved findings:** none.
 

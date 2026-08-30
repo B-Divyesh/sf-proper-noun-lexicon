@@ -4,7 +4,7 @@
 **Artifact:** Rust `pnl` CLI and static Vite review desk
 **Repair commit deployed:** `b80226ffb209c1a3cec8a03aa0b7db5a2c0a4437`
 **Production:** <https://proper-noun-lexicon.sociobot.in/>
-**Deployment ID:** `06a197b3-2ba1-4355-a921-0c2ca71137ea`
+**Deployment ID:** `c763b059-9235-4dbf-822c-e479e503397a`
 
 ## What changed
 
@@ -34,6 +34,7 @@ Production checks after deployment:
 - `/opt/fleet/lib/verify-url.sh https://proper-noun-lexicon.sociobot.in/ .factory/evidence/polish-1/live-verify`: PASS with no console errors, one h1, one main, English language, and complete alt/button names.
 - Live Lighthouse mobile: performance 100, accessibility 100, best practices 100, SEO 100; LCP 1.2 s, CLS 0, TBT 0 ms.
 - Built assets: JS 17,489 bytes, CSS 19,050 bytes, hero WebP 62,510 bytes.
+- Live service-worker cache: `pnl-shell-b80226ffb209c1a3cec8a03aa0b7db5a2c0a4437`, exactly matching the repair commit.
 
 ## Run and deploy
 
