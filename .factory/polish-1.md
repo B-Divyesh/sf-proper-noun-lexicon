@@ -63,4 +63,4 @@ Clean clone: `/tmp/pnl-polish-clean.uerxEu`, commit `b80226ffb209c1a3cec8a03aa0b
 
 **Unresolved findings:** none.
 
-**Latest external status:** the complete production check passed immediately after deployment. Beginning at 04:36 UTC, the shared Sociobot billing service returned HTTP 500 for its catalog and hosted-checkout routes across repeated cold probes. Its health route and invalid-license verifier continued returning 200, and the product site/browser checks remained green. This repository cannot change that shared service; the work order also forbids infrastructure or billing changes.
+**Latest external status:** a temporary shared billing-service error began at 04:36 UTC and recovered before handoff. The final `npm run verify:live` passed the catalog, hosted checkout, and invalid-license checks; the final browser suite passed again afterward.
