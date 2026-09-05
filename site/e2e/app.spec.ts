@@ -150,29 +150,54 @@ test('mobile first screen contains the job, audience, demo action, outcome, and 
   await expect(page.locator('html')).toHaveJSProperty('scrollWidth', 390);
 });
 
-test('every route has its own title and complete sharing metadata', async ({ page }) => {
+test('every route has exact title, canonical, and sharing metadata in the source response', async ({ page, request }) => {
   const routes = [
-    ['/', 'Proper Noun Lexicon — correct dictated names'],
-    ['/demo', 'Demo — Proper Noun Lexicon'],
-    ['/privacy/', 'Privacy — Proper Noun Lexicon'],
-    ['/terms/', 'Terms — Proper Noun Lexicon'],
-    ['/404.html', 'Page not found — Proper Noun Lexicon'],
+    ['/', 'Proper Noun Lexicon — correct dictated names', 'https://proper-noun-lexicon.sociobot.in/'],
+    ['/demo', 'Demo — Proper Noun Lexicon', 'https://proper-noun-lexicon.sociobot.in/demo'],
+    ['/privacy/', 'Privacy — Proper Noun Lexicon', 'https://proper-noun-lexicon.sociobot.in/privacy/'],
+    ['/terms/', 'Terms — Proper Noun Lexicon', 'https://proper-noun-lexicon.sociobot.in/terms/'],
+    ['/404.html', 'Page not found — Proper Noun Lexicon', 'https://proper-noun-lexicon.sociobot.in/404.html'],
   ] as const;
-  for (const [path, title] of routes) {
+  for (const [path, title, canonical] of routes) {
     await page.goto(path);
     await expect(page).toHaveTitle(title);
     await expect(page.locator('main')).toHaveCount(1);
     await expect(page.locator('h1')).toHaveCount(1);
     await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /\S/);
-    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /^https:\/\/proper-noun-lexicon\.sociobot\.in\//);
-    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /\S/);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', canonical);
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', title);
     await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', /\S/);
-    await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', /^https:\/\/proper-noun-lexicon\.sociobot\.in\//);
+    await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', canonical);
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /og-preview\.webp$/);
     await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
-    await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute('content', /\S/);
+    await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute('content', title);
     await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute('content', /\S/);
     await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute('content', /og-preview\.webp$/);
+  }
+
+  const demoSource = await (await request.get('/demo')).text();
+  expect(demoSource).toContain('<title>Demo — Proper Noun Lexicon</title>');
+  expect(demoSource).toContain('<link rel="canonical" href="https://proper-noun-lexicon.sociobot.in/demo"');
+  expect(demoSource).toContain('<meta property="og:title" content="Demo — Proper Noun Lexicon"');
+  expect(demoSource).toContain('<meta property="og:url" content="https://proper-noun-lexicon.sociobot.in/demo"');
+  expect(demoSource).toContain('<meta name="twitter:title" content="Demo — Proper Noun Lexicon"');
+});
+
+test('footer reflows without horizontal scrolling at the 200 percent zoom layout width', async ({ page }) => {
+  await page.setViewportSize({ width: 720, height: 500 });
+  for (const path of ['/', '/demo', '/privacy/', '/terms/', '/404.html']) {
+    await page.goto(path);
+    expect(await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    })), path).toEqual({ clientWidth: 720, scrollWidth: 720 });
+    const beyondViewport = await page.locator('footer > *').evaluateAll(elements => elements.flatMap(element => {
+      const box = element.getBoundingClientRect();
+      return box.left < 0 || box.right > document.documentElement.clientWidth + 0.01
+        ? [element.textContent?.trim() || element.tagName]
+        : [];
+    }));
+    expect(beyondViewport, path).toEqual([]);
   }
 });
 

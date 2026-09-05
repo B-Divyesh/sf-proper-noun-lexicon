@@ -35,11 +35,32 @@
     "sandbox": "Fresh /demo sample; inspect all three generated payloads and validate the documented Google and Azure JSON shapes."
   },
   {
+    "id": "browser-csv-export",
+    "claim": "The browser exports the complete vocabulary as reusable CSV.",
+    "where": "Export CSV control, Privacy page",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:browser-csv-export",
+    "sandbox": "Fresh /demo sample; download the CSV, assert its header and all three rows, then import that download into a clean real workspace."
+  },
+  {
+    "id": "quoted-csv-import",
+    "claim": "CSV import supports quoted fields, commas, and escaped quotes.",
+    "where": "README CSV contract",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:quoted-csv-import",
+    "sandbox": "Clean real workspace entered from /demo; import quoted names and aliases, then correct text using the imported escaped value."
+  },
+  {
+    "id": "utf8-audit-parity",
+    "claim": "Browser and CLI audits use the same UTF-8 byte offsets.",
+    "where": "README audit contract",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:utf8-audit-parity",
+    "sandbox": "Fresh /demo Unicode transcript and a temporary CLI workspace; download both audits and compare exact known byte offsets and changes."
+  },
+  {
     "id": "free-limit",
     "claim": "The browser workspace supports 25 terms for free.",
     "where": "Workspace limit notice, landing pricing, Terms",
     "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:free-limit",
-    "sandbox": "Start at /demo, leave for a clean real workspace, and reject a 26-term CSV without changing the workspace."
+    "sandbox": "Start at /demo, leave for a clean real workspace, accept exactly 25 terms, then reject a 26-term replacement while preserving all 25."
   },
   {
     "id": "pricing",
@@ -67,7 +88,7 @@
     "claim": "Every CLI command supports machine-readable JSON results, including command-line validation errors, without an interactive prompt.",
     "where": "README and CLI help",
     "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:cli-json",
-    "sandbox": "Run the local CLI with --json and an invalid export format; assert exit 2, empty stdout, and one parseable JSON error on stderr."
+    "sandbox": "Build the local CLI, run demo/import/list/export/correct/rollback with --json, inspect their artifacts, then assert parser and runtime errors are one JSON line with no prompt."
   },
   {
     "id": "typed-library",

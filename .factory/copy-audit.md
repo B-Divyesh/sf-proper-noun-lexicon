@@ -1,6 +1,6 @@
 # Landing-page copy audit
 
-Audited 2026-08-30 against `site/index.html` and the changed README sentence. A word is a whitespace-separated token after punctuation is removed. No sentence exceeds 22 words. The banned-word scan is clean; “unlimited” and “unlock” refer only to the literal paid term limit.
+Audited 2026-09-05 against `site/index.html`, the built `/demo` metadata, and `README.md`. A word is a whitespace-separated token after punctuation is removed. No sentence exceeds 22 words. The banned-word scan is clean; “unlimited” and “unlock” refer only to the literal paid term limit.
 
 ## First screen read-aloud
 
@@ -65,6 +65,13 @@ This states the job, audience, first action, and result in four short lines.
 | --- | ---: |
 | `npm run verify:live` checks the deployed site, its headers, file sizes, product listing, checkout redirect, and invalid-license response. | 18 |
 | It does not make a purchase. | 6 |
+
+## Demo metadata
+
+| Copy | Words |
+| --- | ---: |
+| Try Proper Noun Lexicon with three sample names and a raw transcript. | 11 |
+| Demo changes stay separate from your workspace. | 7 |
 
 ## Terminology
 

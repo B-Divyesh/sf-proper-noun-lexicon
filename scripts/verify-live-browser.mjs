@@ -68,6 +68,14 @@ async function checkViewport(name, viewport) {
 await checkViewport('desktop', { width: 1440, height: 1000 });
 await checkViewport('mobile', { width: 390, height: 844 });
 
+const zoomLayout = await browser.newContext({ viewport: { width: 720, height: 500 } });
+const zoomPage = await zoomLayout.newPage();
+for (const path of ['/', '/demo', '/privacy/', '/terms/', '/404.html']) {
+  await zoomPage.goto(new URL(path, base).href);
+  assert.equal(await zoomPage.evaluate(() => document.documentElement.scrollWidth), 720, `${path}: no overflow at 720px/200% zoom layout width`);
+}
+await zoomLayout.close();
+
 const reduced = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
 const reducedPage = await reduced.newPage();
 await reducedPage.goto(new URL('/demo', base).href);
@@ -117,4 +125,4 @@ for (const [path, title] of routes) {
 await routePage.close();
 
 await browser.close();
-console.log(JSON.stringify({ site: base, viewports: ['1440x1000', '390x844'], axe: '0 serious/critical', offline: true, reducedMotion: true, privacy: 'same-origin demo requests only' }, null, 2));
+console.log(JSON.stringify({ site: base, viewports: ['1440x1000', '720x500', '390x844'], axe: '0 serious/critical', offline: true, reducedMotion: true, privacy: 'same-origin demo requests only' }, null, 2));

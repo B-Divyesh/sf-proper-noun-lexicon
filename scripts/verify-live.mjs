@@ -50,6 +50,11 @@ const demoResponse = await request(new URL('/demo', siteUrl));
 assert.equal(demoResponse.status, 200, 'demo route must load directly');
 const demoHtml = await demoResponse.text();
 assert.match(demoHtml, /sample data, nothing is saved/i, 'demo route must include its persistent sandbox banner');
+assert.match(demoHtml, /<title>Demo — Proper Noun Lexicon<\/title>/i, 'demo source must have its own title');
+assert.match(demoHtml, /<link[^>]+rel="canonical"[^>]+href="https:\/\/proper-noun-lexicon\.sociobot\.in\/demo"/i, 'demo source must have its own canonical URL');
+assert.match(demoHtml, /property="og:title"[^>]+content="Demo — Proper Noun Lexicon"/i, 'demo source must have its own Open Graph title');
+assert.match(demoHtml, /property="og:url"[^>]+content="https:\/\/proper-noun-lexicon\.sociobot\.in\/demo"/i, 'demo source must have its own Open Graph URL');
+assert.match(demoHtml, /name="twitter:title"[^>]+content="Demo — Proper Noun Lexicon"/i, 'demo source must have its own Twitter title');
 
 const missingResponse = await request(new URL('/definitely-not-a-page', siteUrl));
 assert.equal(missingResponse.status, 404, 'unknown routes must return HTTP 404');
