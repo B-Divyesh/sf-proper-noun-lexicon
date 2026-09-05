@@ -36,10 +36,17 @@
   },
   {
     "id": "free-limit",
-    "claim": "The browser workspace supports 25 terms for free; a verified $29 one-time license removes that limit.",
-    "where": "Landing facts, pricing, README",
+    "claim": "The browser workspace supports 25 terms for free.",
+    "where": "Workspace limit notice, landing pricing, Terms",
     "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:free-limit",
-    "sandbox": "Start at /demo, leave for a clean real workspace, reject a 26-term CSV, use a recorded valid verifier response, then accept the same CSV."
+    "sandbox": "Start at /demo, leave for a clean real workspace, and reject a 26-term CSV without changing the workspace."
+  },
+  {
+    "id": "pricing",
+    "claim": "A $29 USD non-recurring license removes the browser term limit after verification.",
+    "where": "Landing pricing, license card, Terms",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:pricing",
+    "sandbox": "Read the recorded production catalog fixture, assert USD 2900 and recurring false, check the visible landing and Terms purchase language, then use a recorded valid verifier response to import 26 terms."
   },
   {
     "id": "cli-demo",

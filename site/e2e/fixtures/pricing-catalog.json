@@ -1,0 +1,15 @@
+{
+  "recorded_at": "2026-09-05T20:23:58Z",
+  "source": "Sociobot production product catalog and registered one-time product offer",
+  "data": [
+    {
+      "checkout_url": "https://api.sociobot.in/api/v1/products/proper-noun-lexicon/checkout",
+      "currency": "USD",
+      "name": "Proper Noun Lexicon",
+      "price_minor": 2900,
+      "product_url": "https://proper-noun-lexicon.sociobot.in/",
+      "recurring": false,
+      "slug": "proper-noun-lexicon"
+    }
+  ]
+}

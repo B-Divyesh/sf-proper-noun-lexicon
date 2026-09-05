@@ -122,10 +122,40 @@ test('@claim:model-exports emits each documented model payload from sample data'
   expect(JSON.parse(await page.locator('#export-preview').textContent() || '{}')).toEqual({ phrases: ['Sociobot', 'Kubernetes', 'API'] });
 });
 
-test('@claim:free-limit enforces 25 terms and a verified license removes that limit', async ({ page }) => {
+test('@claim:free-limit enforces the 25-term browser workspace limit', async ({ page }) => {
+  await page.goto('/demo');
+  await page.getByRole('link', { name: 'Start for real' }).click();
+  const csv = `term,aliases\n${Array.from({ length: 26 }, (_, index) => `Term ${index + 1},alias ${index + 1}`).join('\n')}\n`;
+  await page.locator('#csv-file').setInputFiles({ name: '26-terms.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+  await expect(page.getByRole('alert')).toContainText('free workspace holds 25 terms');
+  await expect(page.locator('#entry-count')).toHaveText('0 terms');
+});
+
+test('@claim:pricing shows the recorded $29 USD non-recurring offer and unlocks the term limit', async ({ page }) => {
+  const catalog = JSON.parse(readFileSync(resolve(repo, 'site/e2e/fixtures/pricing-catalog.json'), 'utf8')) as {
+    data: Array<{ checkout_url: string; currency: string; price_minor: number; recurring: boolean; slug: string }>;
+  };
+  const offer = catalog.data.find(product => product.slug === 'proper-noun-lexicon');
+  expect(offer).toMatchObject({
+    checkout_url: 'https://api.sociobot.in/api/v1/products/proper-noun-lexicon/checkout',
+    currency: 'USD',
+    price_minor: 2900,
+    recurring: false,
+  });
+  const visibleAmount = `$${(offer!.price_minor / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+
   await page.route('https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify**', route =>
     route.fulfill({ contentType: 'application/json', body: JSON.stringify({ valid: true, reason: 'ok', expires_at: null }) }),
   );
+  await page.goto('/');
+  const pricing = page.locator('#pricing');
+  await expect(pricing).toContainText(visibleAmount);
+  await expect(pricing).toContainText('No subscription');
+  await expect(page.locator('#buy-link')).toHaveAttribute('href', offer!.checkout_url);
+  await page.goto('/terms/');
+  await expect(page.locator('main')).toContainText(`${visibleAmount} one-time purchase`);
+  await expect(page.locator('main')).toContainText('not a subscription');
+
   await page.goto('/demo');
   await page.getByRole('link', { name: 'Start for real' }).click();
   const csv = `term,aliases\n${Array.from({ length: 26 }, (_, index) => `Term ${index + 1},alias ${index + 1}`).join('\n')}\n`;
@@ -139,7 +169,6 @@ test('@claim:free-limit enforces 25 terms and a verified license removes that li
   await expect(page.locator('#license-status')).toContainText('License verified');
   await page.locator('#csv-file').setInputFiles({ name: '26-terms.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
   await expect(page.locator('#entry-count')).toHaveText('26 terms');
-  await expect(page.locator('#buy-link')).toHaveAttribute('href', 'https://api.sociobot.in/api/v1/products/proper-noun-lexicon/checkout');
 });
 
 test('@claim:cli-demo runs bundled data in a temporary directory with every output', async ({}, testInfo) => {
