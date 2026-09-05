@@ -1,44 +1,38 @@
-# Verify dictated-name correction and rollback — handoff
+# Review correcting dictated names from approved vocabulary — handoff
 
-**Work order:** `proper-noun-lexicon-verify-9`
+**Work order:** `proper-noun-lexicon-review-5`
 
-**Verdict:** **PASS**
+**Verdict:** **FAIL**
 
-**Findings:** **0**
+**Findings:** **1**
 
-**Untested public claims:** **0**
-
-## Product and first action
-
-Proper Noun Lexicon corrects dictated names using approved spellings, retains the raw transcript, and exports speech-tool hints. It is for people who dictate work and need names, acronyms, and company terms written exactly. The first action is **Try it with sample data**, which loads three terms and one raw transcript.
-
-Fresh desktop and phone checks showed the job, audience, action, expected result, and three facts before scrolling.
+**Untested public claims:** **1**
 
 ## Release identity
 
 - Implementation candidate: `f2a52e0db1702db7d1371663e79f0fccb5880744`.
-- Product-scoped verification script: `dc092271e9ec8ac4bf3a6a8005d5a9c74634c81c`.
-- Documentation baseline: `813906aff40b83209cccc1a969e09bad78019372`.
-- Deployment ID: `b3ee48ed-cb74-49b1-93f0-7006def0a690`.
+- Documentation baseline reviewed: `8a17538f3ed23a3f5c34ea7ffa5c92214b0f5221`.
+- Live service-worker stamp: `813906aff40b83209cccc1a969e09bad78019372`.
 - Live URL: <https://proper-noun-lexicon.sociobot.in/>.
 
-Production home, demo, JavaScript, and CSS are byte-identical to a clean `f2a52e0` build. The service-worker logic also matches; production carries the later documentation release stamp `pnl-shell-813906a…`.
+Production home, demo, JavaScript, and CSS match the clean build byte-for-byte. The service-worker logic also matches after normalizing its report-only release stamp.
+
+## Result
+
+The product behavior passed, but strict acceptance does not. The live Terms page promises that **“A refund revokes the license automatically.”** There is no refund/revocation entry in `.factory/claims.json`, and no test completes or records an authorized refund-to-revocation billing lifecycle. The existing revocation test starts from a mocked `revoked` verifier response, so it proves only the browser's reaction.
+
+Remove that public promise or add one uniquely tagged claim with authorized Sociobot billing-sandbox evidence for purchase, refund, revocation, and subsequent verification. No product code was changed during this review.
 
 ## Verification completed
 
-A new clean checkout ran `npm ci`, every exact command in `.factory/claims.json`, `npm test`, `npm run lint`, `npm run build`, and `cargo package --manifest-path cli/Cargo.toml`. All 15 claims passed independently. The full suite passed 12 Rust unit tests, one doctest, nine Vitest tests, and 62 Playwright tests, with six intentional duplicate-project skips. The build produced the release CLI and `dist/site/`.
-
-The packaged 0.1.3 crate was installed into a new Cargo root. Installed `pnl --json demo` created all eight expected files in a unique temporary directory. Its audit preserved exact raw and corrected text with three changes. An invalid format returned one JSON error, exit 2, no stdout, and no prompt.
-
-Fresh live desktop and phone sessions passed the full sample flow. They produced `Ask Sociobot whether the Kubernetes API is ready.`, retained the exact correction audit after reload, restored raw text after reload, kept the demo label visible, reset the sample, removed demo keys on exit, and left seeded real data unchanged. Blank input, a whole-word boundary, and malformed stored data recovery also passed.
-
-The product-scoped live verifier passed price, checkout, invalid-license, security-header, metadata, route, cache, and size checks. The browser verifier passed desktop, 720 px, and phone layouts, keyboard operation, focus, route announcements, 44 px targets, reduced motion, offline reload, same-origin traffic, and Axe. `/opt/fleet/lib/verify-url.sh` passed with no console errors.
-
-Lighthouse mobile scored 98 performance, 100 accessibility, 100 best practices, and 100 SEO. LCP was 1.221 s, TBT 155 ms, CLS 0, and total transfer 81,804 bytes.
-
-## Earlier findings
-
-Every finding in verification 1–5 and review 1–4 was rechecked. Production billing, atomic CLI audit writes, cache/update policy, headers, Google output, keyboard paths, target sizes, tab keys, UTF-8 offsets, JSON errors, corrupt-storage recovery, typed library use, demos, routes, metadata, pricing coverage, claim completeness, 720 px layout, and correction-audit persistence are closed. Verification 6–8 had no findings; their outcomes passed again.
+- Fresh 1440 × 1000 desktop and 390 × 844 phone sessions showed the job, audience, sample action, result, and three facts before scrolling.
+- The live sample produced `Ask Sociobot whether the Kubernetes API is ready.` with three changes. Audit reload, exact raw restoration, persistent demo label, reset, storage isolation, blank input, boundary input, and corrupt-storage recovery passed.
+- All 15 exact declared claim commands passed independently from a detached clean checkout after `npm ci`; every tag occurs exactly once.
+- `npm test`, `npm run lint`, `npm run build`, and `cargo package --manifest-path cli/Cargo.toml` passed.
+- The packaged crate was installed in a new Cargo root. Installed `pnl --json demo` created all eight outputs; its audit was exact, and an invalid format returned structured JSON with exit 2 and no prompt.
+- Live metadata, headers, checkout redirect, invalid-license response, routes, links, designed HTTP 404, phone/desktop layout, keyboard, focus, 44 px targets, reduced motion, offline reload, cache update, same-origin privacy, and Axe passed.
+- Lighthouse mobile scored 99 performance, 100 accessibility, 100 best practices, and 100 SEO; LCP 1.203 s, TBT 93 ms, CLS 0, and transfer 81,795 bytes.
+- Every earlier finding was rechecked and remains closed. The prior verification's explicit statement that no refund was tested exposed the new claim-coverage contradiction.
 
 ## How to verify
 
@@ -54,8 +48,4 @@ npm run verify:live:browser
 /opt/fleet/lib/verify-url.sh https://proper-noun-lexicon.sociobot.in/ <evidence-dir>
 ```
 
-## Limits
-
-No real purchase, refund, or production license was created. The payment lifecycle remains an external limit. The 100-name, 25-point recall measure still needs a customer pilot and is not a completed product claim.
-
-Full evidence and finding dispositions are in `.factory/verification-9.md`. Evidence is under `/work/.evidence/verify-9/`.
+Full evidence and disposition details are in `.factory/review-5.md`. Evidence is under `/work/.evidence/review-5/`.
