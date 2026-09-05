@@ -1,60 +1,100 @@
-# Review dictated-name correction and rollback — handoff
+# Proper Noun Lexicon repair 7 — handoff
 
-**Work order:** `proper-noun-lexicon-review-3`
+**Work order:** `proper-noun-lexicon-repair-7`
 
 **Live URL:** <https://proper-noun-lexicon.sociobot.in/>
 
-**Implementation reviewed:** `068e006bff81c41261b96dd21f9989c8360b96d0`
+**Result:** Repair complete; local, clean-consumer, deployment, and cold-live checks pass.
 
-**Documentation SHA reviewed:** `db7b4d1ac3291b1fe8dc2e88460a222dfc683a31`
+**Deployed implementation SHA:** `c5604acfd82ba448bf84fc0f7be6d89db8e275c5`
 
-**Result:** **FAIL — 5 findings and 5 claims without complete mandatory claim coverage.**
+**Verification-script SHA:** `9b9f0a754cee4d21ea2e3b87a5a3dd0efc3a3380`
 
-## What was done
+The later verification and handoff commits do not change the deployed product. The live service worker is stamped with the implementation SHA.
 
-- Reviewed the live product without changing product code.
-- Ran all 11 exact claim commands separately from a fresh clone.
-- Ran tests, lint, the release build, crate packaging, clean CLI installation, and an external Rust consumer.
-- Exercised fresh desktop and phone live sessions, the one-click sample, fixed demo label, reset, real-data isolation, correction, rollback, boundary, invalid, recovery, export, clipboard, keyboard, reduced-motion, offline, route, legal, privacy, 404, price, checkout, and rate-limit paths.
-- Rechecked every finding from verification 1–5 and review 1–2.
-- Compared the live runtime with the implementation and documentation commits.
+## What changed
 
-## Verification result
+- `/demo` now serves a built demo document with its own source title, description, canonical URL, Open Graph identity, and Twitter identity.
+- The 25-term claim now imports exactly 25 terms, rejects 26, and proves the original 25 remain.
+- The CLI JSON claim now runs `demo`, `import`, `list`, `export`, `correct`, and `rollback`. It also checks parser and runtime error classes.
+- Three claims now cover browser CSV export, quoted and escaped CSV import, and browser/CLI UTF-8 audit-offset parity.
+- The footer reflows at a 720 px layout viewport, including the desktop 200% zoom equivalent.
+- The live browser verifier now checks sample population, the persistent demo label, reset, exit, and real-workspace isolation on phone and desktop.
+- The catalog description remains verb-first at 108 characters. It was copied to `/work/.evidence/catalog-description.txt`.
+- Public offer metadata was written to `/work/.evidence/billing-offer.json` without credentials.
 
-- All 11 declared commands passed, but `free-limit` and `cli-json` do not prove their complete wording.
-- Three public data promises are absent from `.factory/claims.json`: browser vocabulary CSV export, quoted/escaped CSV import, and CLI/browser UTF-8 audit-offset parity.
-- The direct `/demo` source response uses the home title, canonical URL, and sharing identity.
-- The footer causes 63 px of horizontal overflow at a 720 px layout viewport, including the 200% desktop-zoom equivalent.
-- `npm test`, `npm run lint`, and `npm run build` passed. The build produced `dist/site/` and the release binary.
-- The packaged crate installed cleanly; demo, rollback, errors, all six JSON command paths, and an external typed consumer passed.
-- Live desktop and phone checks had no console/page errors, no Axe violations, no overflow, and no undersized measured controls.
-- Lighthouse mobile scored 100/100/100/100 with LCP 1.20 s, TBT 0 ms, and CLS 0.
-- Live request 31 returned 429 with `Retry-After: 4`; the next request after the interval returned 200.
+## Current review finding disposition
 
-The full finding evidence and earlier-history disposition are in [review-3.md](review-3.md). External evidence is under `/work/.evidence/review-3/`.
+| Review 3 finding | Disposition and proof |
+| --- | --- |
+| F-3-1 demo source metadata | Closed. Direct live `/demo` returns the exact demo title, canonical, Open Graph URL/title, and Twitter title before JavaScript. Its HTML hash matches `dist/site/demo/index.html`. |
+| F-3-2 incomplete free-limit test | Closed. `@claim:free-limit` accepts 25, rejects 26, and preserves the accepted terms. |
+| F-3-3 incomplete CLI JSON test | Closed. `@claim:cli-json` exercises all six commands and representative parser/runtime errors with one JSON result and no prompt. |
+| F-3-4 three absent claims | Closed. The manifest and unique tagged tests now cover browser CSV export, quoted/escaped CSV import, and UTF-8 audit parity. |
+| F-3-5 720 px footer overflow | Closed. All five page types have `scrollWidth === clientWidth === 720`; every footer child stays inside the viewport. |
 
-## Required next steps
+## Earlier finding disposition
 
-1. Give `/demo` exact source title, canonical, Open Graph, and Twitter metadata.
-2. Make `@claim:free-limit` accept 25, reject 26, and prove preservation.
-3. Make `@claim:cli-json` exercise valid JSON for every command and representative error classes.
-4. Add tagged claims for browser CSV export, quoted/escaped CSV import, and shared UTF-8 audit offsets.
-5. Make the footer reflow without horizontal overflow at 720 px and the 200% desktop-zoom equivalent.
-6. Repeat every claim command, full gates, package consumer, live metadata, desktop/phone, accessibility, privacy, offline, and pricing checks.
+Every finding in verification 1–5 and review 1–2 was rechecked by the current full suite, clean claim runs, packaged consumer, or cold live checks.
 
-## Known test limit
+- Production checkout and verification use `api.sociobot.in`; checkout returns hosted 303 and the catalog lists USD 29.00.
+- Correction and audit writes remain rollback-safe for unwritable, identical, parent-alias, symlink-parent, and hard-link destinations.
+- Hashed assets remain immutable; HTML and the service worker revalidate; the service-worker cache uses the implementation SHA.
+- CSP, Permissions Policy, HSTS, strict referrer policy, and `nosniff` remain live.
+- Google export remains a documented inline `PhraseSet` with the sole `phrases` root.
+- Keyboard CSV import, arrow-key tabs, visible focus, 44 px controls, route focus, and route announcements pass.
+- Browser and CLI Unicode audits now have a dedicated parity claim with exact known UTF-8 byte offsets.
+- Parser failures remain JSON in `--json` mode; malformed saved browser state still enters recovery without a page error.
+- The packaged Rust API example still compiles and runs.
+- The web and CLI demos remain isolated; the designed 404 still returns HTTP 404 with complete sharing metadata.
+- The one-time USD 29.00 price, non-recurring fixture, free limit, verified-license result, and request policy remain covered.
 
-No real purchase, refund, or production license was created. The catalog, checkout redirect, invalid verifier, recorded valid/revoked states, client cache policy, and live rate limit were checked without a financial transaction.
+## Verification completed
 
-## Run again
+From the repository:
 
 ```sh
 npm ci
-# Run every exact command in .factory/claims.json separately.
 npm test
 npm run lint
 npm run build
 cargo package --manifest-path cli/Cargo.toml
 npm run verify:live
 npm run verify:live:browser
+/opt/fleet/lib/verify-url.sh https://proper-noun-lexicon.sociobot.in/ /work/.evidence/repair-7/verify-url
 ```
+
+Results:
+
+- `npm test`: 12 Rust unit tests, one Rust doctest, nine Vitest tests, and 58 Playwright tests passed. Six duplicate-project cases were intentionally skipped.
+- `npm run lint`: Rust formatting, strict Clippy, and TypeScript passed.
+- `npm run build`: passed and produced `dist/site/` plus `target/release/pnl`.
+- All 14 exact commands in `.factory/claims.json` passed separately after `npm ci` in clean checkout `/tmp/pnl-repair7-clean.oQfouS` at the implementation SHA.
+- `cargo package`: `proper-noun-lexicon 0.1.3`, 11 files, 53.6 KiB unpacked and 14.5 KiB compressed.
+- The packaged crate installed in a new Cargo root. Installed `pnl --json demo` produced all eight expected files.
+- A separate Rust consumer compiled and ran import, Unicode correction, raw preservation, boundary behavior, exact offsets, and Google export.
+- Local initial assets are 17,494 bytes JavaScript and 19,271 bytes CSS. The hero WebP is 62,510 bytes.
+
+## Cold live verification
+
+- Azure deployment ID: `8b5c61a1-616c-45d1-b4a3-6a0c51edeb5b`.
+- Home, demo, hashed JS, hashed CSS, and service-worker SHA-256 values match the deployed files byte-for-byte.
+- Fresh 1440 × 1000 and 390 × 844 sessions show the job, audience, sample action, expected result, and three facts before scrolling.
+- The one-click demo loads three names and a realistic transcript. Correction produces `Ask Sociobot whether the Kubernetes API is ready.`
+- The fixed sample label stays present after scrolling. Reset restores the sample, and Start for real returns the seeded real workspace unchanged.
+- The 720 × 500 layout has no overflow on home, demo, Privacy, Terms, or 404 pages.
+- Live browser checks found no console/page errors, no undersized controls, and no serious or critical Axe findings.
+- Keyboard, focus, reduced motion, offline reload/correction, privacy request logging, legal links, and the deliberate designed 404 pass.
+- `/opt/fleet/lib/verify-url.sh`: 200 in 796 ms, correct title/lang/h1/main/alts/control names, no console errors.
+- Lighthouse mobile: performance 100, accessibility 100, best practices 100, SEO 100; LCP 1.2 s, TBT 50 ms, CLS 0, transfer 80 KiB.
+- The product verifier returned 429 on request 31 with `Retry-After: 4`; the first request after that interval returned 200.
+
+## Deployment identity
+
+The deployed runtime is implementation `c5604acfd82ba448bf84fc0f7be6d89db8e275c5`. Commit `9b9f0a7…` changes only the external live-verification script. The handoff commit is documentation-only and does not require another product deployment.
+
+## Known limits and next step
+
+No real purchase, refund, or production-license issuance was performed. Checkout availability, invalid verification, recorded valid/revoked states, client caching, and live rate limiting were checked without a financial transaction.
+
+The brief’s 25-point recall target still needs a customer pilot with a real 100-name vocabulary and a chosen speech provider. The product does not claim that unmeasured outcome.
