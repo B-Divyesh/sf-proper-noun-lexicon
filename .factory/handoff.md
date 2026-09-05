@@ -4,6 +4,7 @@
 **Artifact:** Rust `pnl` CLI/library and static Vite review desk
 **Production:** <https://proper-noun-lexicon.sociobot.in/>
 **Implementation and deployed SHA:** `068e006bff81c41261b96dd21f9989c8360b96d0`
+**Documentation/evidence SHA:** `8db7de64d64fbadcee704cd97f3aaa3b17ce4f85`
 **Deployment:** `d96474b3-9c4b-4d2d-861d-eb375353e8de`
 **Result:** PASS — the last blocking pricing claim now has an observable tagged test.
 
