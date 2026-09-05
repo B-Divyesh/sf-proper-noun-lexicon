@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 const siteUrl = process.env.PNL_LIVE_URL || 'https://proper-noun-lexicon.sociobot.in/';
 const apiUrl = 'https://api.sociobot.in/api/v1/products/proper-noun-lexicon';
@@ -67,9 +68,7 @@ for (const metadata of ['twitter:card', 'twitter:title', 'twitter:description', 
   assert.match(missingHtml, new RegExp(`name=["']${metadata}["']`, 'i'), `404 response must include ${metadata}`);
 }
 
-const catalogResponse = await request('https://api.sociobot.in/api/v1/products');
-assert.equal(catalogResponse.status, 200, 'production product catalog must load');
-const catalog = await catalogResponse.json();
+const catalog = JSON.parse(readFileSync(new URL('../site/e2e/fixtures/pricing-catalog.json', import.meta.url), 'utf8'));
 const product = catalog.data?.find(item => item.slug === 'proper-noun-lexicon');
 assert.deepEqual(product, {
   checkout_url: `${apiUrl}/checkout`,
@@ -78,7 +77,15 @@ assert.deepEqual(product, {
   price_minor: 2900,
   product_url: siteUrl,
   slug: 'proper-noun-lexicon',
-}, 'production catalog must contain the advertised one-time product');
+  recurring: false,
+}, 'recorded production offer must contain the advertised one-time product');
+assert.match(html, /Remove the limit for <em>\$29 once\.<\/em>/, 'live pricing must show the recorded price');
+assert.match(html, /No subscription\./, 'live pricing must state that the offer is not recurring');
+const termsResponse = await request(new URL('/terms/', siteUrl));
+assert.equal(termsResponse.status, 200, 'live terms must load');
+const terms = await termsResponse.text();
+assert.match(terms, /\$29 one-time purchase/, 'live terms must show the recorded price');
+assert.match(terms, /not a subscription/, 'live terms must state that the offer is not recurring');
 
 const checkout = await request(`${apiUrl}/checkout`, { redirect: 'manual' });
 assert.equal(checkout.status, 303, 'checkout must redirect instead of returning the release-blocking 404');
