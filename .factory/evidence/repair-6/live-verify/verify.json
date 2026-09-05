@@ -1,0 +1,14 @@
+{
+  "url": "https://proper-noun-lexicon.sociobot.in/",
+  "loadMs": 628,
+  "errors": [],
+  "a11y": {
+    "title": "Proper Noun Lexicon — correct dictated names",
+    "lang": "en",
+    "h1": 1,
+    "main": true,
+    "imgsMissingAlt": 0,
+    "buttonsUnlabeled": 0,
+    "textLength": 2865
+  }
+}

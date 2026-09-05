@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#071117" />
+    <meta name="description" content="Correct dictated names with approved spellings. Review every local change, restore raw text, and export speech-model hints." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Proper Noun Lexicon — correct dictated names" />
+    <meta property="og:description" content="Correct dictated names with approved spellings and keep every review on your device." />
+    <meta property="og:url" content="https://proper-noun-lexicon.sociobot.in/" />
+    <meta property="og:image" content="https://proper-noun-lexicon.sociobot.in/og-preview.webp" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Glowing speech fragments linked to an ordered bank of vocabulary cards" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Proper Noun Lexicon — correct dictated names" />
+    <meta name="twitter:description" content="Correct dictated names with approved spellings and keep every review on your device." />
+    <meta name="twitter:image" content="https://proper-noun-lexicon.sociobot.in/og-preview.webp" />
+    <title>Proper Noun Lexicon — correct dictated names</title>
+    <link rel="canonical" href="https://proper-noun-lexicon.sociobot.in/" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script type="module" crossorigin src="/assets/main-PoLuMH7N.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/styles-BdVS7Qoz.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">P<span>N</span></span>
+        <span>Proper Noun Lexicon</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="/demo">Demo</a>
+        <a href="#workspace">Review desk</a>
+        <a href="#pricing">Pricing</a>
+      </nav>
+      <span class="connection-status" id="connection-status"><span aria-hidden="true">●</span> Local &amp; ready</span>
+    </header>
+
+    <aside class="demo-banner" id="demo-banner" aria-label="Demo controls" hidden>
+      <p><strong>Demo</strong> — sample data, nothing is saved to your workspace.</p>
+      <div><button id="reset-demo" type="button">Reset demo</button><a href="/#workspace" id="start-real">Start for real</a></div>
+    </aside>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <img src="/lexical-landscape.webp" width="1280" height="853" alt="Glowing speech fragments connected to an ordered bank of translucent vocabulary cards" fetchpriority="high" />
+        <div class="hero-copy">
+          <p class="eyebrow"><span aria-hidden="true">⌁</span> Local vocabulary for dictation</p>
+          <h1 id="hero-title">Correct dictated names from <em>your vocabulary.</em></h1>
+          <p class="lede">For people who dictate work, it turns chosen aliases into exact names without sending transcripts away.</p>
+          <div class="hero-actions">
+            <a class="button primary" id="try-demo" href="/?demo=1">Try it with sample data <span aria-hidden="true">→</span></a>
+            <span class="action-note">Loads three terms and one raw transcript.</span>
+            <a class="button quiet" id="view-cli-steps" href="#cli">View CLI install steps</a>
+          </div>
+          <ul class="proof" aria-label="Product facts"><li><span aria-hidden="true">✓</span> Stored in this browser</li><li><span aria-hidden="true">✓</span> Works offline after the first visit</li><li><span aria-hidden="true">✓</span> Free for 25 terms</li></ul>
+        </div>
+      </section>
+
+      <section class="workspace-section" id="workspace" aria-labelledby="workspace-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Local review desk</p>
+            <h2 id="workspace-title">Turn approved aliases into exact names.</h2>
+          </div>
+          <p>Your vocabulary and transcript remain in this browser. Nothing here calls a transcription service.</p>
+        </div>
+
+        <div class="desk glass">
+          <div class="desk-topbar">
+            <div class="steps" aria-label="Workflow steps">
+              <span class="active"><b>1</b> Vocabulary</span><span><b>2</b> Raw text</span><span><b>3</b> Review</span><span><b>4</b> Export</span>
+            </div>
+            <span class="save-state" id="save-state" role="status">Saved locally</span>
+          </div>
+
+          <div class="desk-grid">
+            <section class="lexicon-pane" aria-labelledby="lexicon-title">
+              <div class="pane-heading">
+                <div><p class="pane-kicker">Approved vocabulary</p><h3 id="lexicon-title">My vocabulary <span id="entry-count">0 terms</span></h3></div>
+                <div class="inline-actions">
+                  <span class="file-picker">
+                    <input class="file-input" id="csv-file" type="file" accept=".csv,text/csv" aria-label="Import CSV" />
+                    <label class="icon-button" for="csv-file"><span aria-hidden="true">↑</span><span>Import CSV</span></label>
+                  </span>
+                  <button class="icon-button" id="export-csv" type="button" aria-label="Export CSV"><span aria-hidden="true">↓</span><span>CSV</span></button>
+                </div>
+              </div>
+              <form id="term-form" class="term-form">
+                <label>Approved spelling<input id="term-input" name="term" autocomplete="off" required placeholder="e.g. Kubernetes" /></label>
+                <label>Spoken aliases <span>(use | between aliases)</span><input id="aliases-input" name="aliases" autocomplete="off" placeholder="cuber netties | kube er net ease" /></label>
+                <button class="button primary compact" type="submit">Add term</button>
+              </form>
+              <p class="form-error" id="term-error" role="alert"></p>
+              <aside class="saved-data-recovery" id="saved-data-recovery" aria-label="Saved data recovery" hidden>
+                <p>Saved vocabulary was set aside. Download it before you start a new vocabulary.</p>
+                <div><button class="text-button" id="download-saved-data" type="button">Download saved data</button><button class="text-button" id="discard-saved-data" type="button">Discard recovery copy</button></div>
+              </aside>
+              <div id="term-list" class="term-list"></div>
+              <div id="lexicon-empty" class="empty-state">
+                <span class="empty-glyph" aria-hidden="true">Aa → Å</span>
+                <h4>Start with one important name.</h4>
+                <p>Add it above, import a CSV, or try a harmless sample set.</p>
+                <button class="text-button" id="load-sample" type="button">Load sample vocabulary</button>
+              </div>
+              <p class="limit-note" id="limit-note">Free workspace: up to 25 terms. <a href="#pricing">Unlock unlimited</a>.</p>
+            </section>
+
+            <section class="review-pane" aria-labelledby="review-title">
+              <div class="pane-heading">
+                <div><p class="pane-kicker">Reversible correction</p><h3 id="review-title">Transcript review</h3></div>
+                <button class="button quiet compact" id="undo" type="button" disabled>Restore raw</button>
+              </div>
+              <label class="textarea-label" for="raw-text">Raw transcript</label>
+              <textarea id="raw-text" rows="7" spellcheck="true" placeholder="Paste a transcript here. Only aliases in your vocabulary will change."></textarea>
+              <div class="review-action">
+                <span id="shortcut-hint">Ctrl + Enter</span>
+                <button class="button primary" id="apply-corrections" type="button">Apply approved corrections <span aria-hidden="true">→</span></button>
+              </div>
+              <div class="result-wrap" id="result-wrap" hidden>
+                <div class="compare-head"><span>Corrected text</span><span id="change-count" role="status"></span></div>
+                <div id="corrected-output" class="corrected-output" tabindex="0" aria-label="Corrected transcript"></div>
+                <div id="change-list" class="change-list" aria-label="Correction audit"></div>
+                <div class="result-actions">
+                  <button class="button quiet compact" id="copy-corrected" type="button">Copy corrected</button>
+                  <button class="button quiet compact" id="download-audit" type="button">Download audit</button>
+                </div>
+              </div>
+              <div class="review-empty" id="review-empty">
+                <span aria-hidden="true">⌁</span>
+                <p>Your raw and corrected text will appear side by side in the audit. Zero changes is a valid result.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="how-section" aria-labelledby="how-title">
+        <div class="section-heading compact-heading"><div><p class="eyebrow">How it works</p><h2 id="how-title">Review names in three steps.</h2></div></div>
+        <ol class="how-list">
+          <li><strong>Approve spellings.</strong><span>Import a CSV or add each name and spoken alias.</span></li>
+          <li><strong>Review corrections.</strong><span>Paste raw text and inspect only the aliases you approved.</span></li>
+          <li><strong>Keep the evidence.</strong><span>Export the corrected text, raw copy, audit, or model hint.</span></li>
+        </ol>
+      </section>
+
+      <section class="exports-section" aria-labelledby="exports-title">
+        <div class="section-heading compact-heading">
+          <div><p class="eyebrow">Model exports</p><h2 id="exports-title">Export speech-model phrase hints.</h2></div>
+          <p>Create a prompt or phrase list for supported speech tools. You can also use the same vocabulary with the offline CLI.</p>
+        </div>
+        <div class="export-grid">
+          <div class="export-console glass">
+            <div class="tabs" role="tablist" aria-label="Export format">
+              <button id="tab-whisper" role="tab" aria-controls="export-preview" aria-selected="true" tabindex="0" data-format="whisper">Whisper</button>
+              <button id="tab-google" role="tab" aria-controls="export-preview" aria-selected="false" tabindex="-1" data-format="google">Google Speech</button>
+              <button id="tab-azure" role="tab" aria-controls="export-preview" aria-selected="false" tabindex="-1" data-format="azure">Azure Speech</button>
+            </div>
+            <pre id="export-preview" role="tabpanel" aria-labelledby="tab-whisper" tabindex="0">Add vocabulary to preview a model-ready export.</pre>
+            <p class="export-help" id="export-help">Use this text as a Whisper initial prompt.</p>
+            <button class="button primary compact" id="download-model" type="button">Download prompt</button>
+          </div>
+          <div class="cli-card glass" id="cli">
+            <p class="pane-kicker">Offline automation</p>
+            <h3>Run the same workflow with <code>pnl</code>.</h3>
+            <p>One Rust binary runs the same workflow on local files.</p>
+            <pre><code><span>$</span> cargo install --path cli
+<span>$</span> pnl demo
+<span>$</span> pnl import names.csv -o team.json
+<span>$</span> pnl correct -l team.json -i raw.txt \
+    -o corrected.txt -a audit.json</code></pre>
+            <a class="text-button" href="https://github.com/B-Divyesh/sf-proper-noun-lexicon">View source and install guide (external) <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </section>
+
+      <section class="privacy-section" aria-labelledby="privacy-title">
+        <div><p class="eyebrow">What it does not do</p><h2 id="privacy-title">Your transcript stays out of our systems.</h2></div>
+        <p>The review desk does not transcribe audio or send vocabulary away. License checks send only the license token to Sociobot.</p>
+        <a class="text-button" href="/privacy/">Read the privacy policy</a>
+      </section>
+
+      <section class="pricing-section" id="pricing" aria-labelledby="pricing-title">
+        <div class="pricing-copy"><p class="eyebrow">Browser pricing</p><h2 id="pricing-title">Use 25 terms free.<br />Remove the limit for <em>$29 once.</em></h2><p>No subscription. The free workspace includes 25 terms, every model export, audits, and rollback. The one-time license removes the term limit on your devices.</p></div>
+        <div class="license-card glass">
+          <div class="license-head"><span class="license-orb" aria-hidden="true">∞</span><div><p>Permanent license</p><strong>$29 <small>one-time</small></strong></div></div>
+          <ul><li>Unlimited approved terms</li><li>All three current export formats</li><li>Local correction audits and raw rollback</li><li>Use on your own devices</li></ul>
+          <a class="button primary full" id="buy-link" href="https://api.sociobot.in/api/v1/products/proper-noun-lexicon/checkout">Buy permanent access</a>
+          <button class="text-button full" id="show-license" type="button">Have a license? Restore it</button>
+          <form id="license-form" class="license-form" hidden>
+            <label for="license-token">License token</label>
+            <div><input id="license-token" autocomplete="off" spellcheck="false" /><button class="button quiet compact" type="submit">Verify</button></div>
+          </form>
+          <p class="license-status" id="license-status" role="status"></p>
+          <p class="legal-note">Checkout and refunds are handled by Sociobot/Dodo, the merchant of record. <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></p>
+        </div>
+      </section>
+    </main>
+
+    <footer><a class="brand" href="/"><span class="brand-mark" aria-hidden="true">P<span>N</span></span><span>Proper Noun Lexicon</span></a><p>Correct approved names and keep the raw text. <span class="build-id">v0.1.3</span></p><nav aria-label="Footer"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-proper-noun-lexicon">GitHub <span class="visually-hidden">(external)</span></a></nav><span class="factory-credit">Built by Param Factory</span></footer>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="visually-hidden" id="route-status" role="status" aria-live="polite"></div>
+  </body>
+</html>
