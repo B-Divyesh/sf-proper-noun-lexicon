@@ -28,6 +28,13 @@
     "sandbox": "Fresh /demo sample with three approved aliases and an unapproved boundary case; assert correction count and byte-for-byte restored input."
   },
   {
+    "id": "audit-reload",
+    "claim": "The review desk stores the latest correction audit locally and restores the exact audit after reload.",
+    "where": "Privacy page, README",
+    "test": "npx playwright test -c site/playwright.config.ts --project=desktop-chromium --grep @claim:audit-reload",
+    "sandbox": "Fresh /demo sample with Unicode raw text; apply three corrections, download the audit before and after reload, compare them exactly, then restore and reload the raw transcript."
+  },
+  {
     "id": "model-exports",
     "claim": "The same vocabulary exports a Whisper prompt, Google inline PhraseSet, and Azure phrase list.",
     "where": "Exports section, README",

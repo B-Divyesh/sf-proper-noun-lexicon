@@ -59,6 +59,31 @@ test('invalid persisted workspace data is quarantined without a page error', asy
   expect(runtimeErrors).toEqual([]);
 });
 
+test('an invalid saved audit is removed without losing valid vocabulary or raw text', async ({ page }) => {
+  const runtimeErrors: string[] = [];
+  page.on('pageerror', error => runtimeErrors.push(error.message));
+  const workspace = {
+    entries: [{ term: 'Sociobot', aliases: ['socio bot'] }],
+    raw: 'Ask socio bot.',
+    audit: {
+      version: 1,
+      created_at: 1,
+      raw: 'Ask socio bot.',
+      corrected: 'Tampered result',
+      changes: [{ start: 4, end: 13, original: 'socio bot', replacement: 'Sociobot', term: 'Sociobot' }],
+    },
+  };
+  await page.addInitScript(value => localStorage.setItem('pnl:workspace:v1', JSON.stringify(value)), workspace);
+  await page.goto('/');
+
+  await expect(page.getByText('Sociobot', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Raw transcript')).toHaveValue('Ask socio bot.');
+  await expect(page.getByRole('alert')).toContainText('saved correction audit was invalid and was removed');
+  await expect(page.locator('#result-wrap')).toBeHidden();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pnl:workspace:v1') || '{}').audit)).toBeNull();
+  expect(runtimeErrors).toEqual([]);
+});
+
 test('keyboard path and documented Google export are available', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Load sample vocabulary' }).click();

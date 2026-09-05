@@ -111,7 +111,7 @@ cargo package --manifest-path cli/Cargo.toml
 
 ## Demo, privacy, and billing requests
 
-The review desk stores vocabulary and drafts in browser local storage. It does not transcribe audio. Normal demo correction makes only product-origin requests.
+The review desk stores vocabulary, transcript drafts, and the latest correction audit in browser local storage. It does not transcribe audio. Normal demo correction makes only product-origin requests.
 
 Successful automatic license checks are reused for 24 hours. If the billing gateway returns `429`, the app follows `Retry-After` and keeps the free or last verified state. The browser sends only the license token to the disclosed Sociobot verifier.
 

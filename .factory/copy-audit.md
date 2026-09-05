@@ -59,10 +59,11 @@ This states the job, audience, first action, and result in four short lines.
 | Correct approved names and keep the raw text. | 8 |
 | Demo — sample data, nothing is saved to your workspace. | 10 |
 
-## Changed README sentence
+## Changed README sentences
 
 | Copy | Words |
 | --- | ---: |
+| The review desk stores vocabulary, transcript drafts, and the latest correction audit in browser local storage. | 16 |
 | `npm run verify:live` checks the deployed site, its headers, file sizes, product listing, checkout redirect, and invalid-license response. | 18 |
 | It does not make a purchase. | 6 |
 

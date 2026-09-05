@@ -35,6 +35,8 @@ let audit: Audit | null = null;
 let format: 'whisper' | 'google' | 'azure' = 'whisper';
 let pro = false;
 
+type StoredWorkspace = { entries: Entry[]; raw: string; audit?: Audit | null };
+
 function announce(message: string): void {
   toast.textContent = message;
   toast.classList.add('show');
@@ -43,12 +45,45 @@ function announce(message: string): void {
 
 function save(): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ entries, raw: rawInput.value }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ entries, raw: rawInput.value, audit }));
     $('#save-state').textContent = DEMO_MODE ? 'Demo copy only' : 'Saved locally';
   } catch {
     $('#save-state').textContent = 'Local save unavailable';
     $('#save-state').classList.add('warning');
   }
+}
+
+function validatedStoredAudit(value: unknown, raw: string): Audit | null {
+  if (value === undefined || value === null) return null;
+  if (!value || typeof value !== 'object') throw new Error('Saved correction audit has an invalid shape.');
+  const candidate = value as Partial<Audit>;
+  if (candidate.version !== 1 || !Number.isInteger(candidate.created_at) || (candidate.created_at ?? -1) < 0
+    || typeof candidate.raw !== 'string' || candidate.raw !== raw || typeof candidate.corrected !== 'string'
+    || !Array.isArray(candidate.changes)) {
+    throw new Error('Saved correction audit has an invalid shape.');
+  }
+
+  let previousEnd = 0;
+  let corrected = '';
+  for (const valueChange of candidate.changes) {
+    if (!valueChange || typeof valueChange !== 'object') throw new Error('Saved correction audit has an invalid change.');
+    const change = valueChange as Partial<Audit['changes'][number]>;
+    if (!Number.isInteger(change.start) || !Number.isInteger(change.end)
+      || (change.start ?? -1) < previousEnd || (change.end ?? -1) < (change.start ?? 0)
+      || typeof change.original !== 'string' || typeof change.replacement !== 'string'
+      || typeof change.term !== 'string' || change.replacement !== change.term) {
+      throw new Error('Saved correction audit has an invalid change.');
+    }
+    const start = byteOffsetToStringIndex(raw, change.start!);
+    const end = byteOffsetToStringIndex(raw, change.end!);
+    if (raw.slice(start, end) !== change.original) throw new Error('Saved correction audit does not match the transcript.');
+    const previousIndex = byteOffsetToStringIndex(raw, previousEnd);
+    corrected += raw.slice(previousIndex, start) + change.replacement;
+    previousEnd = change.end!;
+  }
+  corrected += raw.slice(byteOffsetToStringIndex(raw, previousEnd));
+  if (corrected !== candidate.corrected) throw new Error('Saved correction audit has an invalid result.');
+  return candidate as Audit;
 }
 
 function load(): void {
@@ -59,10 +94,17 @@ function load(): void {
     if (!stored || typeof stored !== 'object' || !Array.isArray((stored as { entries?: unknown }).entries) || typeof (stored as { raw?: unknown }).raw !== 'string') {
       throw new Error('Saved browser data has an invalid shape.');
     }
-    const workspace = stored as { entries: Entry[]; raw: string };
+    const workspace = stored as StoredWorkspace;
     validateEntries(workspace.entries);
     entries = workspace.entries;
     rawInput.value = workspace.raw;
+    try {
+      audit = validatedStoredAudit(workspace.audit, workspace.raw);
+    } catch {
+      audit = null;
+      termError.textContent = 'The saved correction audit was invalid and was removed. Your vocabulary and transcript are still available.';
+      save();
+    }
   } catch {
     entries = [];
     try {
@@ -138,7 +180,7 @@ $('#csv-file').addEventListener('change', async event => {
 
 $('#load-sample').addEventListener('click', () => {
   if (addEntries(SAMPLE_ENTRIES.map(entry => ({ ...entry, aliases: [...entry.aliases] })), true)) {
-    rawInput.value = SAMPLE_RAW; save(); announce('Sample loaded. Try applying corrections.');
+    rawInput.value = SAMPLE_RAW; resetReview(); save(); announce('Sample loaded. Try applying corrections.');
   }
 });
 
@@ -153,12 +195,10 @@ $('#export-csv').addEventListener('click', () => {
   download('proper-noun-lexicon.csv', toCsv(entries), 'text/csv'); announce('CSV exported.');
 });
 
-rawInput.addEventListener('input', () => { save(); if (audit) resetReview(); });
+rawInput.addEventListener('input', () => { if (audit) resetReview(); save(); });
 
-function applyCorrections(): void {
-  if (!rawInput.value.trim()) { announce('Paste a raw transcript first.'); rawInput.focus(); return; }
-  if (!entries.length) { announce('Add at least one approved term first.'); $<HTMLInputElement>('#term-input').focus(); return; }
-  audit = correct(rawInput.value, entries);
+function renderAudit(): void {
+  if (!audit) return;
   correctedOutput.replaceChildren();
   let cursor = 0;
   for (const change of audit.changes) {
@@ -179,15 +219,28 @@ function applyCorrections(): void {
   });
   $('#change-count').textContent = audit.changes.length ? `${audit.changes.length} approved ${audit.changes.length === 1 ? 'change' : 'changes'}` : 'No approved aliases found';
   resultWrap.hidden = false; reviewEmpty.hidden = true; $<HTMLButtonElement>('#undo').disabled = false;
+}
+
+function applyCorrections(): void {
+  if (!rawInput.value.trim()) { announce('Paste a raw transcript first.'); rawInput.focus(); return; }
+  if (!entries.length) { announce('Add at least one approved term first.'); $<HTMLInputElement>('#term-input').focus(); return; }
+  audit = correct(rawInput.value, entries);
+  renderAudit();
+  save();
   announce(audit.changes.length ? `${audit.changes.length} corrections ready to review.` : 'No approved aliases were found. Raw text is unchanged.');
 }
 
 function resetReview(): void {
-  audit = null; resultWrap.hidden = true; reviewEmpty.hidden = false; $<HTMLButtonElement>('#undo').disabled = true;
+  audit = null;
+  correctedOutput.replaceChildren();
+  changeList.replaceChildren();
+  resultWrap.hidden = true;
+  reviewEmpty.hidden = false;
+  $<HTMLButtonElement>('#undo').disabled = true;
 }
 
 $('#apply-corrections').addEventListener('click', applyCorrections);
-$('#undo').addEventListener('click', () => { if (!audit) return; rawInput.value = audit.raw; save(); resetReview(); announce('Exact raw transcript restored.'); });
+$('#undo').addEventListener('click', () => { if (!audit) return; rawInput.value = audit.raw; resetReview(); save(); announce('Exact raw transcript restored.'); });
 $('#copy-corrected').addEventListener('click', async () => {
   if (!audit) return;
   try { await navigator.clipboard.writeText(audit.corrected); announce('Corrected text copied.'); }
@@ -252,7 +305,7 @@ document.addEventListener('keydown', event => {
   const mod = event.ctrlKey || event.metaKey;
   if (mod && event.key === 'Enter') { event.preventDefault(); applyCorrections(); }
   if (mod && event.key.toLowerCase() === 'z' && audit && !['INPUT', 'TEXTAREA'].includes((event.target as HTMLElement).tagName)) {
-    event.preventDefault(); rawInput.value = audit.raw; save(); resetReview(); announce('Exact raw transcript restored.');
+    event.preventDefault(); rawInput.value = audit.raw; resetReview(); save(); announce('Exact raw transcript restored.');
   }
 });
 if (/Mac|iPhone|iPad/.test(navigator.platform)) $('#shortcut-hint').textContent = '⌘ + Enter';
@@ -355,7 +408,7 @@ function initDemo(): void {
   document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]')?.setAttribute('content', 'Demo — Proper Noun Lexicon');
   try {
     if (localStorage.getItem(STORAGE_KEY) === null) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ entries: SAMPLE_ENTRIES, raw: SAMPLE_RAW }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ entries: SAMPLE_ENTRIES, raw: SAMPLE_RAW, audit: null }));
     }
   } catch {
     entries = SAMPLE_ENTRIES.map(entry => ({ ...entry, aliases: [...entry.aliases] }));
@@ -392,7 +445,7 @@ $('#reset-demo').addEventListener('click', () => {
 });
 $('#start-real').addEventListener('click', () => { removeDemoStorage(); setNextRouteFocus('home'); });
 
-initDemo(); load(); renderEntries(); connectionState();
+initDemo(); load(); renderEntries(); renderAudit(); connectionState();
 if (!DEMO_MODE) initLicense();
 let routeFocusRequested = false;
 try {

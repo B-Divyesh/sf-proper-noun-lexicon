@@ -117,6 +117,37 @@ test('@claim:approved-reversible changes approved aliases and restores the exact
   await expect(page.getByLabel('Raw transcript')).toHaveValue(raw);
 });
 
+test('@claim:audit-reload restores the exact correction audit after reload', async ({ page }) => {
+  const raw = '👋 Ask SOCIO BOT whether the cuber netties A P I is ready.';
+  await page.goto('/demo');
+  await page.getByLabel('Raw transcript').fill(raw);
+  await page.getByRole('button', { name: /Apply approved corrections/ }).click();
+
+  await expect(page.getByLabel('Corrected transcript')).toHaveText('👋 Ask Sociobot whether the Kubernetes API is ready.');
+  await expect(page.locator('#change-count')).toHaveText('3 approved changes');
+  const firstDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download audit' }).click();
+  const beforeReload = await readDownload(await (await firstDownload).createReadStream() as Readable);
+
+  await page.reload();
+  await expect(page.getByLabel('Corrected transcript')).toHaveText('👋 Ask Sociobot whether the Kubernetes API is ready.');
+  await expect(page.locator('#change-count')).toHaveText('3 approved changes');
+  await expect(page.locator('#change-list')).toContainText('SOCIO BOT→Sociobot');
+  await expect(page.locator('#change-list')).toContainText('cuber netties→Kubernetes');
+  await expect(page.locator('#change-list')).toContainText('A P I→API');
+
+  const secondDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download audit' }).click();
+  const afterReload = await readDownload(await (await secondDownload).createReadStream() as Readable);
+  expect(JSON.parse(afterReload)).toEqual(JSON.parse(beforeReload));
+
+  await page.getByRole('button', { name: 'Restore raw' }).click();
+  await expect(page.getByLabel('Raw transcript')).toHaveValue(raw);
+  await page.reload();
+  await expect(page.locator('#result-wrap')).toBeHidden();
+  await expect(page.getByLabel('Raw transcript')).toHaveValue(raw);
+});
+
 test('@claim:cli-json returns machine-readable results for every command and representative errors without prompting', async ({}, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'The CLI claim runs once.');
   test.setTimeout(90_000);
