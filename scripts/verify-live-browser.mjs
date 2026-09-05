@@ -31,10 +31,22 @@ async function checkViewport(name, viewport) {
   }));
   assert.deepEqual(requiredFirstScreen.filter(item => !item.visible || item.bottom > viewport.height), [], `${name}: required first-screen copy fits the viewport`);
 
+  const realWorkspace = JSON.stringify({ entries: [{ term: 'Real term', aliases: ['real alias'] }], raw: 'Real draft' });
+  await page.evaluate(value => localStorage.setItem('pnl:workspace:v1', value), realWorkspace);
+
   await page.getByRole('link', { name: /Try it with sample data/ }).click();
   assert.match(page.url(), /\?demo=1$/, `${name}: one-click demo query route`);
   assert.equal(await page.locator('#workspace-title').evaluate(element => element === document.activeElement), true, `${name}: demo heading receives focus`);
   assert.match(await page.locator('#route-status').innerText(), /Demo loaded.*ready/i, `${name}: demo route is announced`);
+  assert.equal(await page.locator('#entry-count').innerText(), '3 terms', `${name}: one-click sample is populated`);
+  assert.equal(await page.getByLabel('Raw transcript').inputValue(), 'Ask socio bot whether the cuber netties A P I is ready.', `${name}: realistic sample transcript`);
+  await page.getByRole('button', { name: 'Remove Sociobot' }).click();
+  assert.equal(await page.locator('#entry-count').innerText(), '2 terms', `${name}: demo edit applies`);
+  await page.getByRole('button', { name: 'Reset demo' }).click();
+  assert.equal(await page.locator('#entry-count').innerText(), '3 terms', `${name}: demo reset restores terms`);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  assert.equal(await page.locator('#demo-banner').evaluate(element => getComputedStyle(element).position), 'fixed', `${name}: demo label stays persistent`);
+  assert.equal(await page.evaluate(() => localStorage.getItem('pnl:workspace:v1')), realWorkspace, `${name}: demo does not change real data`);
   await page.goBack();
   assert.equal(await page.locator('#hero-title').evaluate(element => element === document.activeElement), true, `${name}: Back restores heading focus`);
   assert.match(await page.locator('#route-status').innerText(), /Home loaded/i, `${name}: Back route is announced`);
@@ -62,6 +74,9 @@ async function checkViewport(name, viewport) {
   assert.deepEqual(undersized, [], `${name}: 44px targets`);
   assert.deepEqual(errors, [], `${name}: console/page errors`);
   assert.deepEqual([...new Set(requests.map(url => new URL(url).origin))], [new URL(base).origin], `${name}: demo requests stay same-origin`);
+  await page.getByRole('link', { name: 'Start for real' }).click();
+  assert.equal(await page.getByText('Real term', { exact: true }).count(), 1, `${name}: real workspace returns unchanged`);
+  assert.deepEqual(await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('demo:pnl:'))), [], `${name}: leaving demo clears sample storage`);
   await context.close();
 }
 
