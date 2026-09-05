@@ -1,16 +1,26 @@
-# Proper Noun Lexicon repair 7 — handoff
+# Proper Noun Lexicon verification 8 — handoff
 
-**Work order:** `proper-noun-lexicon-repair-7`
+**Work order:** `proper-noun-lexicon-verify-8`
 
 **Live URL:** <https://proper-noun-lexicon.sociobot.in/>
 
-**Result:** Repair complete; local, clean-consumer, deployment, and cold-live checks pass.
+**Result:** PASS. Independent clean-checkout, installed-artifact, and live checks found zero findings and zero untested claims.
 
 **Deployed implementation SHA:** `c5604acfd82ba448bf84fc0f7be6d89db8e275c5`
 
 **Verification-script SHA:** `9b9f0a754cee4d21ea2e3b87a5a3dd0efc3a3380`
 
-The later verification and handoff commits do not change the deployed product. The live service worker is stamped with the implementation SHA.
+**Documentation SHA:** `473921c65a5798279ce1663271d7eeea9d2ecc8d`
+
+See `.factory/verification-8.md` for the complete independent evidence.
+
+## Verification 8 summary
+
+- A clean checkout at `c5604ac` passed `npm ci`, every one of the 14 declared claim commands, `npm test`, `npm run lint`, `npm run build`, and `cargo package --manifest-path cli/Cargo.toml`.
+- A newly installed `pnl` binary ran `--json demo` in a clean consumer root and created all eight expected artifacts in a unique temporary directory.
+- Fresh desktop and phone sessions stated the job, audience, and sample action before scrolling. The one-click sample populated realistic output, kept its persistent demo label, reset correctly, and left real workspace data unchanged.
+- Production live checks passed for route metadata, designed 404, links, keyboard/focus, 720 px responsive layout, reduced motion, offline correction, privacy requests, accessibility, and headers.
+- The production HTML, demo HTML, JavaScript, and CSS match a fresh `c5604ac` build byte-for-byte. The service-worker logic also matches, while its cache stamp is the later documentation/test SHA `473921c…` rather than the implementation SHA. This causes no product-code difference.
 
 ## What changed
 
@@ -39,7 +49,7 @@ Every finding in verification 1–5 and review 1–2 was rechecked by the curren
 
 - Production checkout and verification use `api.sociobot.in`; checkout returns hosted 303 and the catalog lists USD 29.00.
 - Correction and audit writes remain rollback-safe for unwritable, identical, parent-alias, symlink-parent, and hard-link destinations.
-- Hashed assets remain immutable; HTML and the service worker revalidate; the service-worker cache uses the implementation SHA.
+- Hashed assets remain immutable; HTML and the service worker revalidate; the current service-worker cache name uses the documentation/test SHA while its logic matches the implementation build.
 - CSP, Permissions Policy, HSTS, strict referrer policy, and `nosniff` remain live.
 - Google export remains a documented inline `PhraseSet` with the sole `phrases` root.
 - Keyboard CSV import, arrow-key tabs, visible focus, 44 px controls, route focus, and route announcements pass.
@@ -91,7 +101,7 @@ Results:
 
 ## Deployment identity
 
-The deployed runtime is implementation `c5604acfd82ba448bf84fc0f7be6d89db8e275c5`. Commit `9b9f0a7…` changes only the external live-verification script. The handoff commit is documentation-only and does not require another product deployment.
+The deployed runtime source assets are implementation `c5604acfd82ba448bf84fc0f7be6d89db8e275c5`. Commit `9b9f0a7…` changes only the external live-verification script. Documentation commit `473921c…` does not alter product source, but the deployed service-worker cache name carries that later SHA. The implementation and documentation identities are both recorded above; no new product deployment is required.
 
 ## Known limits and next step
 
