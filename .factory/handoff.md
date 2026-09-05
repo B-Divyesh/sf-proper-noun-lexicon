@@ -1,47 +1,56 @@
-# Verify dictated-name correction and rollback — handoff
+# Review dictated-name correction and rollback — handoff
 
-**Work order:** `proper-noun-lexicon-verify-7`
+**Work order:** `proper-noun-lexicon-review-3`
 
 **Live URL:** <https://proper-noun-lexicon.sociobot.in/>
 
 **Implementation reviewed:** `068e006bff81c41261b96dd21f9989c8360b96d0`
 
-**Documentation baseline:** `7f831bd11aaaaf0eb70ed309f61f84f19d81ba2c`
+**Documentation SHA reviewed:** `db7b4d1ac3291b1fe8dc2e88460a222dfc683a31`
 
-**Result:** **PASS — 0 findings and 0 untested declared claims.**
+**Result:** **FAIL — 5 findings and 5 claims without complete mandatory claim coverage.**
 
 ## What was done
 
-- Performed independent QA without changing product code.
+- Reviewed the live product without changing product code.
 - Ran all 11 exact claim commands separately from a fresh clone.
-- Ran `npm test`, lint/typecheck, the full release build, and `cargo package`.
-- Installed the packed crate into a new Cargo root and exercised installed help, sample output, audits, all three exports, and JSON error behavior.
-- Opened the live page in fresh desktop and phone contexts and checked the cold first screen, one-click sample, persistent label, reset, real-data isolation, normal correction, invalid input, boundary matching, recovery, keyboard use, focus, reduced motion, offline behavior, links, legal routes, privacy traffic, and the designed 404.
-- Checked production catalog price, hosted checkout redirect, invalid verification, and live 429/`Retry-After` behavior without making a purchase.
-- Rechecked every earlier verification and review finding.
+- Ran tests, lint, the release build, crate packaging, clean CLI installation, and an external Rust consumer.
+- Exercised fresh desktop and phone live sessions, the one-click sample, fixed demo label, reset, real-data isolation, correction, rollback, boundary, invalid, recovery, export, clipboard, keyboard, reduced-motion, offline, route, legal, privacy, 404, price, checkout, and rate-limit paths.
+- Rechecked every finding from verification 1–5 and review 1–2.
+- Compared the live runtime with the implementation and documentation commits.
 
 ## Verification result
 
-- Claims: 11 passed; 0 failed; 0 untested.
-- Full tests: 13 Rust unit/doc tests, 9 Vitest tests, and 51 Playwright cases passed; 5 intentional cross-project duplicates skipped.
-- Build: `dist/site/` and the release `pnl` binary produced successfully.
-- Package: `proper-noun-lexicon 0.1.3`, 11 files, 53.6 KiB unpacked / 14.5 KiB compressed.
-- Live browser: desktop 1440 × 1000 and phone 390 × 844 passed with no console/page errors and no serious/critical Axe findings.
-- Fresh Lighthouse mobile: 100 performance, 100 accessibility, 100 best practices, 100 SEO; LCP 1.20 s, TBT 57.5 ms, CLS 0.
-- Deployment: live `index.html` and `sw.js` match the clean documentation-baseline build. The `7f831bd…` worker stamp comes from a report-only deployment; runtime implementation changes stop at `068e006…`.
+- All 11 declared commands passed, but `free-limit` and `cli-json` do not prove their complete wording.
+- Three public data promises are absent from `.factory/claims.json`: browser vocabulary CSV export, quoted/escaped CSV import, and CLI/browser UTF-8 audit-offset parity.
+- The direct `/demo` source response uses the home title, canonical URL, and sharing identity.
+- The footer causes 63 px of horizontal overflow at a 720 px layout viewport, including the 200% desktop-zoom equivalent.
+- `npm test`, `npm run lint`, and `npm run build` passed. The build produced `dist/site/` and the release binary.
+- The packaged crate installed cleanly; demo, rollback, errors, all six JSON command paths, and an external typed consumer passed.
+- Live desktop and phone checks had no console/page errors, no Axe violations, no overflow, and no undersized measured controls.
+- Lighthouse mobile scored 100/100/100/100 with LCP 1.20 s, TBT 0 ms, and CLS 0.
+- Live request 31 returned 429 with `Retry-After: 4`; the next request after the interval returned 200.
 
-Full evidence and all earlier finding dispositions are in [verification-7.md](verification-7.md). External worker evidence is under `/work/.evidence/verify-7/`.
+The full finding evidence and earlier-history disposition are in [review-3.md](review-3.md). External evidence is under `/work/.evidence/review-3/`.
 
-## Known limit
+## Required next steps
 
-No real paid purchase, refund, or issued production license was created. The production catalog, checkout boundary, invalid verifier, live rate limit, and deterministic recorded valid/revoked/cache outcomes were checked. This is an explicit financial-test limit, not an untested declared claim.
+1. Give `/demo` exact source title, canonical, Open Graph, and Twitter metadata.
+2. Make `@claim:free-limit` accept 25, reject 26, and prove preservation.
+3. Make `@claim:cli-json` exercise valid JSON for every command and representative error classes.
+4. Add tagged claims for browser CSV export, quoted/escaped CSV import, and shared UTF-8 audit offsets.
+5. Make the footer reflow without horizontal overflow at 720 px and the 200% desktop-zoom equivalent.
+6. Repeat every claim command, full gates, package consumer, live metadata, desktop/phone, accessibility, privacy, offline, and pricing checks.
 
-The brief's 25-point recall outcome still needs a customer pilot vocabulary and a transcription system. The product intentionally does not upload an audio corpus.
+## Known test limit
+
+No real purchase, refund, or production license was created. The catalog, checkout redirect, invalid verifier, recorded valid/revoked states, client cache policy, and live rate limit were checked without a financial transaction.
 
 ## Run again
 
 ```sh
 npm ci
+# Run every exact command in .factory/claims.json separately.
 npm test
 npm run lint
 npm run build
