@@ -1,47 +1,44 @@
-# Handoff — Proper Noun Lexicon repair 6
+# Verify dictated-name correction and rollback — handoff
 
-**Work order:** `proper-noun-lexicon-repair-6`
-**Artifact:** Rust `pnl` CLI/library and static Vite review desk
-**Production:** <https://proper-noun-lexicon.sociobot.in/>
-**Implementation and deployed SHA:** `068e006bff81c41261b96dd21f9989c8360b96d0`
-**Documentation/evidence SHA:** `8db7de64d64fbadcee704cd97f3aaa3b17ce4f85`
-**Deployment:** `d96474b3-9c4b-4d2d-861d-eb375353e8de`
-**Result:** PASS — the last blocking pricing claim now has an observable tagged test.
+**Work order:** `proper-noun-lexicon-verify-7`
 
-## What changed
+**Live URL:** <https://proper-noun-lexicon.sociobot.in/>
 
-- Split the original combined `free-limit` promise into two claims. `free-limit` now proves the free 25-term boundary; `pricing` proves the paid offer.
-- Added `site/e2e/fixtures/pricing-catalog.json`, a recorded production product-offer fixture. It records USD `price_minor: 2900` and explicit `recurring: false`.
-- Added exactly one `@claim:pricing` Playwright test. It reads that fixture, checks the displayed `$29` and no-subscription terms on the landing page and Terms page, checks the checkout target, then shows the 26-term import failing before and succeeding after a recorded valid license-verifier response.
-- The pricing test checks a visitor-visible purchase result and a license-unlock result. It is not a source-string-only assertion.
+**Implementation reviewed:** `068e006bff81c41261b96dd21f9989c8360b96d0`
 
-## Current disposition of prior findings
+**Documentation baseline:** `7f831bd11aaaaf0eb70ed309f61f84f19d81ba2c`
 
-- Review 2 F-2-1 is fixed by the dedicated `pricing` claim above.
-- Review 1 F-1-1 through F-1-6 remain covered by current live checks: route focus/announcement, 404 sharing metadata, truthful CLI action, plain export copy, consistent vocabulary wording, and short README verification copy.
-- Verification 1 through 6 findings remain fixed: production billing URL, reversible CLI output/audit safety, cache and security headers, documented Google payload, keyboard CSV import/targets/tabs, Unicode audit offsets, JSON CLI errors, stored-data recovery, Rust doctest, isolated web/CLI demos, claims manifest, 404 routing, and license retry handling.
+**Result:** **PASS — 0 findings and 0 untested declared claims.**
 
-## Verification
+## What was done
 
-From fresh clone `/tmp/pnl-pricing-clean.1C32Qj` at implementation SHA:
+- Performed independent QA without changing product code.
+- Ran all 11 exact claim commands separately from a fresh clone.
+- Ran `npm test`, lint/typecheck, the full release build, and `cargo package`.
+- Installed the packed crate into a new Cargo root and exercised installed help, sample output, audits, all three exports, and JSON error behavior.
+- Opened the live page in fresh desktop and phone contexts and checked the cold first screen, one-click sample, persistent label, reset, real-data isolation, normal correction, invalid input, boundary matching, recovery, keyboard use, focus, reduced motion, offline behavior, links, legal routes, privacy traffic, and the designed 404.
+- Checked production catalog price, hosted checkout redirect, invalid verification, and live 429/`Retry-After` behavior without making a purchase.
+- Rechecked every earlier verification and review finding.
 
-- `npm ci`: passed, 0 vulnerabilities.
-- Every exact command in `.factory/claims.json` passed independently: `demo-sandbox`, `local-privacy`, `offline-reload`, `approved-reversible`, `model-exports`, `free-limit`, `pricing`, `cli-demo`, `license-request-policy`, `cli-json`, and `typed-library`.
-- `npm run lint`: passed.
-- `npm run build`: passed. It ran 13 Rust unit/doctests, 9 Vitest tests, and 51 Playwright cases; five deliberately project-guarded duplicate cases skipped. It created `dist/site/` and the release CLI.
-- `cargo package --manifest-path cli/Cargo.toml`: passed; 11 files, 53.6 KiB unpacked and 14.5 KiB compressed.
-- A packed-crate install into a new Cargo root passed. Installed `pnl --help` described the local, non-interactive workflow. Installed `pnl --json demo` made three corrections and all eight sample outputs. The inspected demo directory was the only removal target; the container disallowed that cleanup command, so it remains as an OS temporary directory only.
+## Verification result
 
-## Live HTTPS verification
+- Claims: 11 passed; 0 failed; 0 untested.
+- Full tests: 13 Rust unit/doc tests, 9 Vitest tests, and 51 Playwright cases passed; 5 intentional cross-project duplicates skipped.
+- Build: `dist/site/` and the release `pnl` binary produced successfully.
+- Package: `proper-noun-lexicon 0.1.3`, 11 files, 53.6 KiB unpacked / 14.5 KiB compressed.
+- Live browser: desktop 1440 × 1000 and phone 390 × 844 passed with no console/page errors and no serious/critical Axe findings.
+- Fresh Lighthouse mobile: 100 performance, 100 accessibility, 100 best practices, 100 SEO; LCP 1.20 s, TBT 57.5 ms, CLS 0.
+- Deployment: live `index.html` and `sw.js` match the clean documentation-baseline build. The `7f831bd…` worker stamp comes from a report-only deployment; runtime implementation changes stop at `068e006…`.
 
-- `npm run verify:live`: passed. It confirmed the production catalog is USD 29.00, the hosted checkout returns 303, invalid verification works, headers and budgets are present, `/demo` works, and an unknown route returns the designed 404.
-- `npm run verify:live:browser`: passed fresh 1440 × 1000 and 390 × 844 contexts. It covered first-screen fit, demo entry, persistent demo label, correction and exact raw rollback, Back/focus announcement, internal links, no console errors, same-origin demo traffic, 44 px targets, reduced motion, offline demo reload, and zero serious/critical Axe violations.
-- `/opt/fleet/lib/verify-url.sh`: passed at <https://proper-noun-lexicon.sociobot.in/>: HTTP 200, 628 ms load, one h1, main landmark, language, named controls, alt text, and no errors. Evidence is in `.factory/evidence/repair-6/live-verify/`.
-- Fresh desktop and phone reads both began at `scrollY: 0` with the job “Correct dictated names from your vocabulary.”, the audience “For people who dictate work…”, and **Try it with sample data** as the first action. It says that it loads three terms and one raw transcript.
-- Live Lighthouse mobile: performance 99, accessibility 100, best practices 100, SEO 100; LCP 1,669 ms, CLS 0, TBT 0 ms. Report: `.factory/evidence/repair-6/lighthouse-live.json`.
-- Live `sw.js` contains `pnl-shell-068e006bff81c41261b96dd21f9989c8360b96d0`, matching the implementation SHA.
+Full evidence and all earlier finding dispositions are in [verification-7.md](verification-7.md). External worker evidence is under `/work/.evidence/verify-7/`.
 
-## Run and deploy
+## Known limit
+
+No real paid purchase, refund, or issued production license was created. The production catalog, checkout boundary, invalid verifier, live rate limit, and deterministic recorded valid/revoked/cache outcomes were checked. This is an explicit financial-test limit, not an untested declared claim.
+
+The brief's 25-point recall outcome still needs a customer pilot vocabulary and a transcription system. The product intentionally does not upload an audio corpus.
+
+## Run again
 
 ```sh
 npm ci
@@ -49,11 +46,6 @@ npm test
 npm run lint
 npm run build
 cargo package --manifest-path cli/Cargo.toml
-/opt/fleet/lib/deploy-static.sh proper-noun-lexicon dist/site
 npm run verify:live
 npm run verify:live:browser
 ```
-
-## Known limits and next step
-
-No product defects remain. No actual purchase, refund, or issued production license was created because that would cause an external financial action. The hosted checkout boundary, catalog price, invalid verifier, and recorded valid-license browser outcome were tested. A real issued-license lifecycle remains dependent on Sociobot/Dodo. The brief’s 25-point recall outcome still needs a customer pilot vocabulary and transcription system; this product intentionally does not transmit an audio corpus.
