@@ -1,40 +1,48 @@
-# Proper Noun Lexicon — repair 9 handoff
+# Proper Noun Lexicon — verification 10 handoff
 
-**Work order:** `proper-noun-lexicon-repair-9`
+**Work order:** `proper-noun-lexicon-verify-10`
 **Verdict:** **PASS**
 **Open findings:** 0
 **Untested public claims:** 0
 
 ## Release identity
 
-- Implementation: `fc872f61acba948453db929a6a5a69b697a3a40e` (`fix: remove unverified refund revocation promise`).
-- Verification documentation: `f5b54c3e3b451def9bba300fe5b21e7553bbbf73` (`.factory/repair-9.md`).
+- Implementation: `fc872f61acba948453db929a6a5a69b697a3a40e`.
+- Documentation baseline: `5687df981950d33ee330f554d6f86494178de939`.
 - Deployment: `e0d578d9-42b6-4579-ac93-f8050bedbd89`.
-- Live service worker: `pnl-shell-fc872f61acba948453db929a6a5a69b697a3a40e`.
+- Live worker stamp: `5687df981950d33ee330f554d6f86494178de939`.
 - Live URL: <https://proper-noun-lexicon.sociobot.in/>.
 
-## What changed
+The post-implementation commits contain only reports. Production pages and assets are byte-identical to the clean `fc872f6` build. The worker's executable logic also matches after normalizing its documentation-tip release token.
 
-- Removed the Terms assertion that a refund automatically revokes a license. The product cannot honestly prove the external refund-to-revocation lifecycle in this scope.
-- Preserved the paid offer: USD 29 one-time, not a subscription, free 25-term workspace, Sociobot/Dodo merchant-of-record checkout and refund handling, purchase restore, and verified-license unlock.
-- Strengthened browser regression coverage: a valid license accepts 26 terms; an expired cached result refreshed as revoked removes paid state and a clean 26-term import is rejected. Cached valid access while offline is covered separately.
+## What was verified
 
-## Verification
+- Fresh desktop and phone browsers showed the job, audience, sample action, result, and three facts before scrolling.
+- The one-click sample produced three realistic corrections. Its label stayed visible, reset restored the sample, and the separate real workspace remained unchanged.
+- Live normal, blank, 25/26 boundary, malformed-storage, audit-reload, rollback, offline, and recorded revoked-license paths passed.
+- All 15 declared claims passed separately from a clean clone after `npm ci`.
+- `npm test`, `npm run lint`, `npm run build`, and `cargo package --manifest-path cli/Cargo.toml` passed.
+- The packaged crate installed in a clean consumer root. Installed `pnl --json demo` created eight outputs and a three-change audit; invalid JSON input returned one non-interactive error.
+- Live headers, checkout, invalid verifier, privacy traffic, links, titles, metadata, keyboard flow, focus, 44 px targets, reduced motion, offline reload, update behavior, and deliberate HTTP 404 passed.
+- Axe found zero violations across five routes at desktop and phone sizes.
+- Mobile Lighthouse was 100/100/100/100; LCP 1.203 s, TBT 0 ms, CLS 0, and transfer 81,804 bytes.
+- Every earlier verifier and review finding, including minor findings and review 5's refund wording, is closed in `.factory/verification-10.md`.
 
-From a fresh clone at the implementation SHA, `npm ci` succeeded with no vulnerabilities. All 15 exact claim commands in `.factory/claims.json` passed independently. `npm test`, `npm run lint`, `npm run build`, and `cargo package --manifest-path cli/Cargo.toml` all passed. The full test run had 12 Rust unit tests, one doctest, nine Vitest tests, and 64 passing browser tests; six intentional cross-project duplicates were skipped.
+## Commands
 
-The packed `proper-noun-lexicon 0.1.3` crate was extracted and installed into a clean consumer root. Installed `pnl --json demo` created all eight outputs and a three-change audit. Invalid JSON-mode export returned exit 2, one JSON error, no prompt, and no output.
+```sh
+npm ci
+# Run each command in .factory/claims.json separately
+npm test
+npm run lint
+npm run build
+cargo package --manifest-path cli/Cargo.toml
+npm run verify:live
+npm run verify:live:browser
+```
 
-Production checks passed:
+The detailed report is [.factory/verification-10.md](verification-10.md). Evidence copies are `/work/.evidence/qa-report.md` and `/work/.evidence/qa-result.json`.
 
-- `npm run verify:live`
-- `npm run verify:live:browser`
-- `/opt/fleet/lib/verify-url.sh https://proper-noun-lexicon.sociobot.in/ /work/.evidence/repair-9-verify-url`
+## Known limits
 
-Fresh 1440 × 1000 and 390 × 844 contexts showed the job, audience, action, result, and facts before scrolling. The one-click sample created the expected three corrections, retained its visible demo label, reset cleanly, and never changed a seeded real workspace. Keyboard, accessibility, 720 px layout, reduced motion, offline reload, privacy traffic, legal routes, and designed HTTP 404 checks passed. Browser Axe found zero serious or critical issues. Mobile Lighthouse was 100 performance, 100 accessibility, 100 best practices, and 100 SEO; LCP was 1.32 s, total blocking time 65 ms, and CLS 0.
-
-The full disposition of the current and all earlier findings is in [.factory/repair-9.md](repair-9.md). `.factory/design.md`, `.factory/demo.md`, and `.factory/copy-audit.md` remain current. The catalog description is verb-first and 109 bytes; a required copy is at `/work/.evidence/catalog-description.txt`.
-
-## Known limits and next steps
-
-No payment, refund, or production license was created. The refund lifecycle is an external merchant dependency and is not promised by the product. The 100-name/25-point recall target requires a customer pilot and is not claimed as achieved. To test an automatic refund revocation in future, use an authorized Sociobot billing sandbox that provides a purchased license, refund action, and subsequent verifier verdict; then restore that promise only with a dedicated lifecycle claim.
+No real payment, refund, or production license was created. The product no longer claims automatic refund revocation. The brief's pilot recall target is not claimed as achieved.
