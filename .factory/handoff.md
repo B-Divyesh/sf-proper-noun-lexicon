@@ -1,6 +1,6 @@
-# Proper Noun Lexicon — verification 10 handoff
+# Proper Noun Lexicon — review 6 handoff
 
-**Work order:** `proper-noun-lexicon-verify-10`
+**Work order:** `proper-noun-lexicon-review-6`
 **Verdict:** **PASS**
 **Open findings:** 0
 **Untested public claims:** 0
@@ -8,31 +8,30 @@
 ## Release identity
 
 - Implementation: `fc872f61acba948453db929a6a5a69b697a3a40e`.
-- Documentation baseline: `5687df981950d33ee330f554d6f86494178de939`.
-- Deployment: `e0d578d9-42b6-4579-ac93-f8050bedbd89`.
+- Documentation baseline reviewed: `20916161ab35fc25316df400f8f3553e6ca9201a`.
 - Live worker stamp: `5687df981950d33ee330f554d6f86494178de939`.
 - Live URL: <https://proper-noun-lexicon.sociobot.in/>.
 
-The post-implementation commits contain only reports. Production pages and assets are byte-identical to the clean `fc872f6` build. The worker's executable logic also matches after normalizing its documentation-tip release token.
+The commits after the implementation contain only Factory reports and handoff documents. Production pages and assets are byte-identical to the clean implementation build. The service worker also matches after normalizing its report-only release token.
 
 ## What was verified
 
 - Fresh desktop and phone browsers showed the job, audience, sample action, result, and three facts before scrolling.
-- The one-click sample produced three realistic corrections. Its label stayed visible, reset restored the sample, and the separate real workspace remained unchanged.
-- Live normal, blank, 25/26 boundary, malformed-storage, audit-reload, rollback, offline, and recorded revoked-license paths passed.
-- All 15 declared claims passed separately from a clean clone after `npm ci`.
+- The one-click sample produced the exact three-name correction. Its audit survived reload, raw rollback was exact, the demo label stayed visible, reset restored the sample, and real data remained unchanged.
+- Live blank, unapproved-boundary, 25/26-limit, malformed-storage, invalid-license, offline, update, and recovery paths passed.
+- All 15 claim commands passed separately from a clean checkout after `npm ci`.
 - `npm test`, `npm run lint`, `npm run build`, and `cargo package --manifest-path cli/Cargo.toml` passed.
-- The packaged crate installed in a clean consumer root. Installed `pnl --json demo` created eight outputs and a three-change audit; invalid JSON input returned one non-interactive error.
-- Live headers, checkout, invalid verifier, privacy traffic, links, titles, metadata, keyboard flow, focus, 44 px targets, reduced motion, offline reload, update behavior, and deliberate HTTP 404 passed.
-- Axe found zero violations across five routes at desktop and phone sizes.
-- Mobile Lighthouse was 100/100/100/100; LCP 1.203 s, TBT 0 ms, CLS 0, and transfer 81,804 bytes.
-- Every earlier verifier and review finding, including minor findings and review 5's refund wording, is closed in `.factory/verification-10.md`.
+- The packaged crate installed in a new consumer root. Installed demo and invalid JSON-mode behavior passed.
+- Headers, privacy traffic, links, titles, metadata, keyboard use, focus, 44 px targets, reduced motion, legal pages, and deliberate HTTP 404 behavior passed.
+- Axe reported zero violations on five routes at desktop and phone sizes.
+- Mobile and desktop Lighthouse each scored 100/100/100/100. Mobile LCP was 1.202 seconds, TBT was 0 ms, CLS was 0, and transfer was 81,795 bytes.
+- Every earlier finding, including review 5's unproved refund wording, remains closed.
 
 ## Commands
 
 ```sh
 npm ci
-# Run each command in .factory/claims.json separately
+# Run every command in .factory/claims.json separately
 npm test
 npm run lint
 npm run build
@@ -41,8 +40,8 @@ npm run verify:live
 npm run verify:live:browser
 ```
 
-The detailed report is [.factory/verification-10.md](verification-10.md). Evidence copies are `/work/.evidence/qa-report.md` and `/work/.evidence/qa-result.json`.
+The detailed report is [.factory/review-6.md](review-6.md). Evidence is under `/work/.evidence/review-6/`. Required copies are `/work/.evidence/qa-report.md` and `/work/.evidence/qa-result.json`.
 
 ## Known limits
 
-No real payment, refund, or production license was created. The product no longer claims automatic refund revocation. The brief's pilot recall target is not claimed as achieved.
+No real purchase, refund, or production license was created. The product does not claim automatic refund revocation. The brief's pilot recall target is not claimed as achieved.
