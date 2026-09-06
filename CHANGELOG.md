@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Remove the unverified promise that a refund automatically revokes a license.
+- Strengthen the browser regression for a revoked license by proving the free 25-term limit returns after verification.
+
 ## 0.1.3 — 2026-08-30
 
 - Add isolated one-click web demo state under `/demo` with reset and clean exit controls.

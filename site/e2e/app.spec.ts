@@ -261,7 +261,7 @@ test('a returned production license is stored, stripped from the URL, and unlock
   expect(await page.evaluate(() => localStorage.getItem('sb_license:proper-noun-lexicon'))).toBe('qa-valid-token');
 });
 
-test('restore, daily verification cache, revocation, and offline fallback preserve the license contract', async ({ page }) => {
+test('a revoked verifier response returns the browser workspace to its free term limit', async ({ page }) => {
   let verdict: 'valid' | 'revoked' = 'valid';
   let verifyRequests = 0;
   await page.route('https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify**', route => {
@@ -277,6 +277,10 @@ test('restore, daily verification cache, revocation, and offline fallback preser
   await expect(page.locator('#license-status')).toContainText('License verified');
   expect(verifyRequests).toBe(1);
 
+  const csv = `term,aliases\n${Array.from({ length: 26 }, (_, index) => `Term ${index + 1},alias ${index + 1}`).join('\n')}\n`;
+  await page.locator('#csv-file').setInputFiles({ name: '26-terms.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+  await expect(page.locator('#entry-count')).toHaveText('26 terms');
+
   await page.reload();
   await expect(page.locator('body')).toHaveClass(/is-pro/);
   expect(verifyRequests).toBe(1);
@@ -291,16 +295,26 @@ test('restore, daily verification cache, revocation, and offline fallback preser
   await page.reload();
   await expect(page.locator('body')).not.toHaveClass(/is-pro/);
   await expect(page.locator('#license-status')).toContainText('License no longer active');
+  await expect(page.locator('#limit-note')).toBeVisible();
   expect(verifyRequests).toBe(2);
 
   await page.evaluate(() => {
+    localStorage.removeItem('pnl:workspace:v1');
+  });
+  await page.reload();
+  await page.locator('#csv-file').setInputFiles({ name: '26-terms.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+  await expect(page.getByRole('alert')).toContainText('free workspace holds 25 terms');
+  await expect(page.locator('#entry-count')).toHaveText('0 terms');
+});
+
+test('an offline cached valid license keeps its last verified access', async ({ page }) => {
+  await page.route('https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify**', route => route.abort());
+  await page.addInitScript(() => {
     const token = 'qa-offline-token';
     localStorage.setItem('sb_license:proper-noun-lexicon', token);
     localStorage.setItem('sb_license_verdict:proper-noun-lexicon', JSON.stringify({ valid: true, checkedAt: 0, token }));
   });
-  await page.unroute('https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify**');
-  await page.route('https://api.sociobot.in/api/v1/products/proper-noun-lexicon/verify**', route => route.abort());
-  await page.reload();
+  await page.goto('/');
   await expect(page.locator('body')).toHaveClass(/is-pro/);
   await expect(page.locator('#license-status')).toContainText('Offline — using the last verified license');
 });
