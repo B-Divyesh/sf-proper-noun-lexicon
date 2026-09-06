@@ -31,7 +31,7 @@ Production checks passed:
 - `npm run verify:live:browser`
 - `/opt/fleet/lib/verify-url.sh https://proper-noun-lexicon.sociobot.in/ /work/.evidence/repair-9-verify-url`
 
-Fresh 1440 × 1000 and 390 × 844 contexts showed the job, audience, action, result, and facts before scrolling. The one-click sample created the expected three corrections, retained its visible demo label, reset cleanly, and never changed a seeded real workspace. Keyboard, accessibility, 720 px layout, reduced motion, offline reload, privacy traffic, legal routes, and designed HTTP 404 checks passed. Browser Axe found zero serious or critical issues.
+Fresh 1440 × 1000 and 390 × 844 contexts showed the job, audience, action, result, and facts before scrolling. The one-click sample created the expected three corrections, retained its visible demo label, reset cleanly, and never changed a seeded real workspace. Keyboard, accessibility, 720 px layout, reduced motion, offline reload, privacy traffic, legal routes, and designed HTTP 404 checks passed. Browser Axe found zero serious or critical issues. Mobile Lighthouse was 100 performance, 100 accessibility, 100 best practices, and 100 SEO; LCP was 1.32 s, total blocking time 65 ms, and CLS 0.
 
 The full disposition of the current and all earlier findings is in [.factory/repair-9.md](repair-9.md). `.factory/design.md`, `.factory/demo.md`, and `.factory/copy-audit.md` remain current. The catalog description is verb-first and 109 bytes; a required copy is at `/work/.evidence/catalog-description.txt`.
 

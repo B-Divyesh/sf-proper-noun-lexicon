@@ -46,6 +46,7 @@ The packed crate was extracted into a new consumer directory and installed under
 - `npm run verify:live:browser` passed fresh 1440 × 1000, 720 × 500, and 390 × 844 sessions. It verified the one-click sample, exact populated correction, persistent demo banner, reset, demo isolation, Start-for-real cleanup, routes, keyboard, 44 px targets, reduced motion, offline reload, same-origin demo traffic, and zero serious/critical Axe findings.
 - Fresh desktop and phone visual checks show the job, audience, first action, action result, and three facts before scrolling. The job is correcting dictated names from approved vocabulary; the audience is people who dictate work; the first action is **Try it with sample data**.
 - `/opt/fleet/lib/verify-url.sh` passed on the live home page: `200`, title, `lang`, one h1, main landmark, image alternatives, named controls, and no console errors.
+- Mobile Lighthouse: 100 performance, 100 accessibility, 100 best practices, and 100 SEO; LCP 1.32 s, total blocking time 65 ms, CLS 0, and transfer 80,300 bytes.
 - The designed unknown route remains an expected HTTP 404, not a failure.
 
 ## Earlier findings
